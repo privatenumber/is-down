@@ -1,0 +1,15 @@
+# Agent skills shipped by direct dev dependencies
+permissions:
+  clean-pkg-json:
+    skills: true
+  cleye:
+    skills: true
+  lintroll:
+    skills: true
+  manten:
+    skills: true
+
+# Native packages whose install scripts prepare platform binaries
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
