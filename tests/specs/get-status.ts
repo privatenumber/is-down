@@ -119,7 +119,7 @@ describe('getStatus', () => {
 		});
 		expect(result).toMatchObject({
 			state: 'error',
-			error: 'Timed out',
+			error: `Timed out reaching ${page.url}`,
 		});
 	});
 

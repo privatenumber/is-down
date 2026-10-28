@@ -313,7 +313,7 @@ describe('check', () => {
 
 			const { exitCode, stdout } = await run([page.url, '--timeout', '200', '--since', '0']);
 			expect(exitCode).toBe(2);
-			expect(stdout).toContain('Timed out');
+			expect(stdout).toBe(`✗ 127.0.0.1  Timed out reaching ${page.url}\n`);
 		});
 
 		test('degraded takes precedence over unreachable', async () => {

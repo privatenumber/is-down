@@ -54,7 +54,7 @@ export const getStatus = async (
 
 		// Timeouts are page failures. Other aborts propagate with their own reason.
 		if (error instanceof DOMException && error.name === 'TimeoutError') {
-			return errorResult(request, 'Timed out');
+			return errorResult(request, `Timed out reaching ${request.url}`);
 		}
 		throw error;
 	}

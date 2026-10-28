@@ -56,7 +56,7 @@ const request = async (url: string, signal: AbortSignal) => {
 		// fetch() rejects with a TypeError for network failures such as DNS or connection errors
 		if (error instanceof TypeError) {
 			const cause = error.cause as FetchCause | undefined;
-			throw new PageError(`Request failed: ${cause?.code ?? cause?.message ?? error.message}`);
+			throw new PageError(`Request to ${url} failed: ${cause?.code ?? cause?.message ?? error.message}`);
 		}
 		throw error;
 	}
