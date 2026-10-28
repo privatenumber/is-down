@@ -68,6 +68,19 @@ export const createLiveRegion = (stream: Stream) => {
 			stream.write(`${beginFrame}${hide}${erase()}${frame}${endFrame}`);
 			height = lines.length;
 		},
+
+		/**
+		 * Erases the block and calls `write`, so its output takes the block's place.
+		 * The frame stays open, so the next `render` must follow to draw the block below it.
+		 */
+		print: (write: () => void) => {
+			if (drawing) {
+				// Autowrap is restored so the printed output wraps instead of being cut
+				stream.write(`${beginFrame}${erase()}${enableWrap}`);
+				height = 0;
+			}
+			write();
+		},
 		clear,
 	};
 };

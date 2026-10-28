@@ -14,30 +14,46 @@ const frameInterval = 80;
  * Awaits the checks while showing one line per service that updates as each result arrives.
  * Shows nothing unless the stream is a terminal, and erases the view before returning,
  * so the final output replaces it.
+ *
+ * `onResult` is called as each check finishes, and its output appears above the view.
+ * Services it has printed drop out of the view.
  */
 export const trackProgress = async <T extends Pick<ServiceResult, 'state'>>(
 	labels: string[],
 	checks: Promise<T>[],
-	stream: Parameters<typeof createLiveRegion>[0] = process.stderr,
+	{
+		stream = process.stderr,
+		onResult,
+	}: {
+		stream?: Parameters<typeof createLiveRegion>[0];
+		onResult?: (result: T) => void;
+	} = {},
 ): Promise<T[]> => {
 	const region = createLiveRegion(stream);
 	if (!region) {
-		return await Promise.all(checks);
+		return await Promise.all(checks.map(async (check) => {
+			const result = await check;
+			onResult?.(result);
+			return result;
+		}));
 	}
 
 	const states: (T['state'] | undefined)[] = labels.map(() => undefined);
 	let frame = 0;
 
 	const draw = () => {
-		region.render(labels.map((label, index) => {
+		region.render(labels.flatMap((label, index) => {
 			const state = states[index];
+			if (state && onResult) {
+				return [];
+			}
 			const { color, text } = state
 				? stateSymbols[state]
 				: {
 					color: 'cyan' as const,
 					text: frames[frame]!,
 				};
-			return `${styleText(color, text, { stream })} ${label}`;
+			return [`${styleText(color, text, { stream })} ${label}`];
 		}));
 		frame = (frame + 1) % frames.length;
 	};
@@ -52,6 +68,9 @@ export const trackProgress = async <T extends Pick<ServiceResult, 'state'>>(
 		return await Promise.all(checks.map(async (check, index) => {
 			const result = await check;
 			states[index] = result.state;
+			if (onResult) {
+				region.print(() => onResult(result));
+			}
 			if (interval) {
 				draw();
 			}

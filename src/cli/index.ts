@@ -74,6 +74,10 @@ try {
 	} else {
 		const targets = argv._.services.length > 0 ? argv._.services : ['defaults'];
 		const pages = resolveTargets(targets);
+
+		// In a terminal, each result prints as soon as it arrives. Elsewhere, results print
+		// together in argument order, so the output is the same on every run.
+		const printEach = process.stdout.isTTY && !argv.flags.json;
 		const results = await trackProgress(
 			pages.map(page => page.provider?.name ?? new URL(page.url).hostname),
 			pages.map(page => getStatus(page.provider ?? page.url, {
@@ -82,9 +86,18 @@ try {
 				since: argv.flags.since,
 				signal: AbortSignal.timeout(argv.flags.timeout),
 			})),
+			{
+				onResult: printEach
+					? (result) => {
+						process.stdout.write(`${formatResults([result])}\n`);
+					}
+					: undefined,
+			},
 		);
 
-		process.stdout.write(`${argv.flags.json ? JSON.stringify(results, null, '\t') : formatResults(results)}\n`);
+		if (!printEach) {
+			process.stdout.write(`${argv.flags.json ? JSON.stringify(results, null, '\t') : formatResults(results)}\n`);
+		}
 
 		if (results.some(result => result.state === 'degraded')) {
 			process.exitCode = 1;
