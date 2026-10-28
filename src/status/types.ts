@@ -72,7 +72,7 @@ export type GetStatusOptions = {
 	since?: number;
 
 	/**
-	 * Aborts the check. Defaults to `AbortSignal.timeout(5000)`. A passed signal replaces the
+	 * Aborts the check. Defaults to `AbortSignal.timeout(10_000)`. A passed signal replaces the
 	 * default timeout. A timeout signal returns `state: 'error'`. Any other abort rejects with
 	 * the signal's reason.
 	 */

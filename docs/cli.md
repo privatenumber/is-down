@@ -52,7 +52,7 @@ Incidents with an impact of `none` are shown but do not count as degraded.
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--since <duration>` | `1h` | Also show incidents resolved within this window, such as `30m`, `6h`, `2d`, or `1h30m`. `0` disables it and skips the extra request. Resolved incidents never affect the exit code. |
-| `--timeout <ms>` | `5000` | Request timeout per status page. |
+| `--timeout <ms>` | `10000` | Request timeout per status page. |
 | `--json` | | Print results as JSON. The shape matches `ServiceResult` in the [Node.js API](node.md). |
 | `--help` | | Show help. |
 | `--version` | | Show the version. |

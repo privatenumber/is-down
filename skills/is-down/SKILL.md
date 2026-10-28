@@ -37,6 +37,6 @@ const result = await getStatus(npm, { components: ['install'], since: 60 * 60 * 
 await getStatus('https://status.example.com') // Any Statuspage-compatible page
 ```
 
-`getStatus` checks one page; use `Promise.all` for several. It times out after 5 seconds by default; a passed `signal` replaces that timeout. Network failures, page failures, and timeouts are returned as `state: 'error'`. It throws only for an invalid URL, and rejects when `signal` aborts for another reason.
+`getStatus` checks one page; use `Promise.all` for several. It times out after 10 seconds by default; a passed `signal` replaces that timeout. Network failures, page failures, and timeouts are returned as `state: 'error'`. It throws only for an invalid URL, and rejects when `signal` aborts for another reason.
 
 Read the [CLI docs](https://github.com/privatenumber/is-down/blob/develop/docs/cli.md) when you need a CLI flag, selector form, or degraded rule not shown here, and the [Node.js API docs](https://github.com/privatenumber/is-down/blob/develop/docs/node.md) when you need a `getStatus` option or result field not shown here.

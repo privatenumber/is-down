@@ -30,11 +30,11 @@ To check several pages, call `getStatus` for each one with `Promise.all`.
 | `components` | `string[]` | Every component | Component selectors to scope the check to, matched against component and group names. See [component selectors](cli.md#component-selectors). |
 | `incidents` | `string[]` | | Incident IDs to include in `requestedIncidents`, regardless of age |
 | `since` | `number` | `3600000` (1 hour) | Include incidents resolved within this many milliseconds. `0` disables it and skips a request. |
-| `signal` | `AbortSignal` | `AbortSignal.timeout(5000)` | Aborts the check. A passed signal replaces the default timeout. |
+| `signal` | `AbortSignal` | `AbortSignal.timeout(10_000)` | Aborts the check. A passed signal replaces the default timeout. |
 
-Network failures, timeouts, unsupported pages, unmatched selectors, and providers with `platform: 'other'` do not throw. They are returned as results with `state: 'error'`. A timeout is a `signal` that aborts with a `TimeoutError`, such as `AbortSignal.timeout(5000)`.
+Network failures, timeouts, unsupported pages, unmatched selectors, and providers with `platform: 'other'` do not throw. They are returned as results with `state: 'error'`. A timeout is a `signal` that aborts with a `TimeoutError`, such as `AbortSignal.timeout(10_000)`.
 
-To cancel a check and keep a timeout, combine the signals: `AbortSignal.any([controller.signal, AbortSignal.timeout(5000)])`.
+To cancel a check and keep a timeout, combine the signals: `AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)])`.
 
 `getStatus` throws only when `target` is not a valid URL, and rejects with the signal's reason when `signal` aborts for any reason other than a timeout.
 

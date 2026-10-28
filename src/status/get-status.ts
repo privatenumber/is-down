@@ -42,7 +42,7 @@ export const getStatus = async (
 
 	const {
 		since = 60 * 60 * 1000,
-		signal = AbortSignal.timeout(5000),
+		signal = AbortSignal.timeout(10_000),
 	} = options;
 	try {
 		const data = await fetchPageData(request, since, signal);

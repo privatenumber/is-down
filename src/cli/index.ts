@@ -42,7 +42,7 @@ try {
 				type: Integer,
 				description: 'Request timeout per status page in milliseconds',
 				placeholder: '<ms>',
-				default: 5000,
+				default: 10_000,
 			},
 		},
 		strictFlags: true,
