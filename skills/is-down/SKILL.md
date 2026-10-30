@@ -25,6 +25,14 @@ Exit codes: `0` operational, `1` degraded (takes precedence), `2` page unreachab
 
 When diagnosing a failure, scope the check to the component that failed, such as `npm:install` for install errors or `github:actions` for workflow errors. Use `--since` with a window that covers the failure time; resolved incidents are listed but don't change the exit code. An unmatched selector exits `2` and lists the page's components.
 
+## Watching an incident
+
+Each active incident in the output ends with a `Watch: npx is-down watch <incident-url>` line. Run it in the background to follow the incident instead of polling:
+
+- If your harness reports a background command only when it exits, add `--until-update`. Exit `1` means a new update was posted. Start the same command again in the background before acting on the update, so no later update is missed.
+- If your harness reports each output line as it arrives, run it without `--until-update`. Each line is one event.
+- Exit `0` means the incident resolved: retry the action that failed. Set `--max-wait` below your harness's time limit for background commands; exit `124` means nothing changed in that time.
+
 ## Node.js API
 
 ```ts

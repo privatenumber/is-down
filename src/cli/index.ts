@@ -19,6 +19,10 @@ try {
 				description: 'List known services, optionally filtered by a query',
 				loader: () => import('./commands/list.ts'),
 			},
+			watch: {
+				description: 'Watch an incident and print each update until it resolves',
+				loader: () => import('./commands/watch.ts'),
+			},
 			skills: {
 				description: 'Print the bundled agent skill, or install it with --install <directory>',
 				loader: () => import('./commands/skills.ts'),
@@ -64,6 +68,7 @@ try {
 				'is-down "https://status.example.com#builds" --since 6h',
 				'is-down --json vercel',
 				'is-down list google',
+				'is-down watch https://status.npmjs.org/incidents/abc123',
 				'is-down skills --install ~/.agents/skills',
 			],
 		},

@@ -86,7 +86,10 @@ const formatIncident = (incident: Incident, now: number) => {
 	if (incident.components.length > 0) {
 		lines.push(style('dim', `  Affected: ${incident.components.join(', ')}`));
 	}
-	lines.push(style('dim', `  ${incident.url}`));
+	// Active incidents show the command that follows them, which also carries the URL
+	lines.push(style('dim', resolvedAt === undefined
+		? `  Watch: npx is-down watch ${linkTo(incident.url, incident.url)}`
+		: `  ${incident.url}`));
 	return lines.map(line => `${indent}${line}`);
 };
 

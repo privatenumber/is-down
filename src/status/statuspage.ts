@@ -9,6 +9,9 @@ export type ApiComponent = {
 };
 
 export type ApiIncidentUpdate = {
+
+	/** The incident's status as of this update */
+	status?: string;
 	body: string;
 	created_at: string;
 	display_at?: string;

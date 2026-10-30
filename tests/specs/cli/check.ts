@@ -59,7 +59,7 @@ describe('check', () => {
 				'    ● Elevated build errors [minor] · monitoring · started 30m ago',
 				'      A fix has been implemented.',
 				'      Affected: Builds',
-				`      ${page.url}/incidents/abc`,
+				`      Watch: npx is-down watch ${page.url}/incidents/abc`,
 				'',
 			].join('\n'));
 		});
