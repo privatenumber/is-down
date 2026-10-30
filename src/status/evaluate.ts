@@ -1,4 +1,6 @@
-import type { Incident, PageRequest, ServiceResult } from './types.ts';
+import type {
+	Incident, IncidentUpdate, PageRequest, ServiceResult,
+} from './types.ts';
 import { type ComponentStatus, statusLabels, worstStatus } from './component-status.ts';
 import type { ApiIncident, ApiIncidentUpdate } from './statuspage.ts';
 import type { PageData } from './fetch-page.ts';
@@ -14,7 +16,16 @@ const getLatestUpdate = (updates: ApiIncidentUpdate[] = []) => {
 	return latest;
 };
 
-const toIncident = (
+export const toIncidentUpdate = (
+	incident: ApiIncident,
+	update: ApiIncidentUpdate,
+): IncidentUpdate => ({
+	status: update.status ?? incident.status,
+	body: update.body,
+	createdAt: update.display_at ?? update.created_at,
+});
+
+export const toIncident = (
 	incident: ApiIncident,
 	pageUrl: string,
 	componentNames: Map<string, string>,
@@ -28,10 +39,7 @@ const toIncident = (
 		url: `${pageUrl}/incidents/${incident.id}`,
 		startedAt: incident.started_at ?? incident.created_at,
 		resolvedAt: incident.resolved_at ?? undefined,
-		latestUpdate: latestUpdate && {
-			body: latestUpdate.body,
-			createdAt: latestUpdate.display_at ?? latestUpdate.created_at,
-		},
+		latestUpdate: latestUpdate && toIncidentUpdate(incident, latestUpdate),
 		components: incident.components?.map(
 			component => componentNames.get(component.id) ?? component.id,
 		) ?? [],

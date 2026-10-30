@@ -1,13 +1,7 @@
-import { setTimeout as sleep } from 'node:timers/promises';
 import { styleText } from 'node:util';
 import { cli } from 'cleye';
-import {
-	type ApiIncident,
-	type ApiIncidentUpdate,
-	PageError,
-	fetchIncident,
-	fetchIncidents,
-} from '../../status/statuspage.ts';
+import type { Incident, IncidentUpdate } from '../../status/types.ts';
+import { watchIncident, resolvedStatuses } from '../../status/watch-incident.ts';
 import { parseDuration, formatDuration } from '../duration.ts';
 import { resolveTargets, TargetError } from '../resolve.ts';
 
@@ -41,14 +35,6 @@ const argv = cli({
 	},
 });
 
-// Statuspage serves summaries from a CDN cache, so polling more often than this finds nothing new.
-// The environment variable lets tests poll faster.
-const pollInterval = Number(process.env.IS_DOWN_WATCH_INTERVAL) || 60_000;
-
-const requestTimeout = 10_000;
-
-const resolvedStatuses = new Set(['resolved', 'postmortem']);
-
 const [page] = resolveTargets([argv._.incident]);
 const [incidentId] = page?.incidentIds ?? [];
 if (!page || !incidentId) {
@@ -57,44 +43,6 @@ if (!page || !incidentId) {
 		'Run "is-down <service>" to list a service\'s active incidents and their URLs.',
 	]);
 }
-const pageUrl = page.url;
-const incidentUrl = `${pageUrl}/incidents/${incidentId}`;
-
-// incident.io pages have no single-incident endpoint, so after the first 404 the list is used
-let useIncidentList = false;
-
-const fetchWatchedIncident = async () => {
-	const signal = AbortSignal.timeout(requestTimeout);
-	if (!useIncidentList) {
-		const incident = await fetchIncident(pageUrl, incidentId, signal);
-		if (incident) {
-			return incident;
-		}
-		useIncidentList = true;
-	}
-
-	const incidents = await fetchIncidents(pageUrl, signal);
-	const incident = incidents.find(item => item.id === incidentId);
-	if (!incident) {
-		throw new PageError(`Incident ${incidentId} not found on ${pageUrl}`);
-	}
-	return incident;
-};
-
-/** Returns the incident, or the reason it could not be read */
-const poll = async (): Promise<ApiIncident | string> => {
-	try {
-		return await fetchWatchedIncident();
-	} catch (error) {
-		if (error instanceof PageError) {
-			return error.message;
-		}
-		if (error instanceof DOMException && error.name === 'TimeoutError') {
-			return `Timed out reaching ${pageUrl}`;
-		}
-		throw error;
-	}
-};
 
 const style = (format: Parameters<typeof styleText>[0], text: string) => (
 	styleText(format, text, { stream: process.stdout })
@@ -105,70 +53,64 @@ const print = (line: string) => {
 	process.stdout.write(`${line}\n`);
 };
 
-const formatUpdate = (incident: ApiIncident, update: ApiIncidentUpdate) => (
-	`  ${style('bold', update.status ?? incident.status)} · ${update.body.replaceAll(/\s+/g, ' ').trim()}`
-);
-
-const sortUpdates = (incident: ApiIncident) => (incident.incident_updates ?? []).slice().sort(
-	(a, b) => (a.created_at < b.created_at ? -1 : (a.created_at > b.created_at ? 1 : 0)),
+const formatUpdate = (update: IncidentUpdate) => (
+	`  ${style('bold', update.status)} · ${update.body.replaceAll(/\s+/g, ' ').trim()}`
 );
 
 // Repeats this exact invocation, so a rerun keeps the same flags
 const rerunCommand = `npx is-down ${process.argv.slice(2).join(' ')}`;
 
-const startedWatching = Date.now();
+const { maxWait } = argv.flags;
+const maxWaitSignal = maxWait === undefined ? undefined : AbortSignal.timeout(maxWait);
 
-const first = await poll();
-if (typeof first === 'string') {
-	process.stderr.write(`${style('red', 'Error:')} ${first}\n`);
-	process.exitCode = 2;
-} else {
-	const startedAt = Date.parse(first.started_at ?? first.created_at);
-	const impact = first.impact === 'none' ? '' : ` [${first.impact}]`;
-	print(`${style('yellow', '●')} ${style('bold', first.name)}${impact} · started ${formatDuration(Date.now() - startedAt)} ago · ${incidentUrl}`);
+/** Prints the watch and returns the exit code */
+const watch = async () => {
+	let incident: Incident | undefined;
+	try {
+		for await (const event of watchIncident(`${page.url}/incidents/${incidentId}`, {
+			// Lets tests poll faster than the default of once a minute
+			interval: Number(process.env.IS_DOWN_WATCH_INTERVAL) || undefined,
+			signal: maxWaitSignal,
+		})) {
+			if (event.type === 'error') {
+				// Before the first successful check, the incident may not exist, so stop
+				if (!incident) {
+					process.stderr.write(`${styleText('red', 'Error:', { stream: process.stderr })} ${event.error}\n`);
+					return 2;
+				}
+				print(`${style('red', '!')} Could not check the incident: ${event.error}`);
+				continue;
+			}
 
-	const updates = sortUpdates(first);
-	const latest = updates.at(-1);
-	if (latest) {
-		print(formatUpdate(first, latest));
-	}
-	let lastSeen = latest?.created_at ?? '';
-	let incident = first;
+			incident = event.incident;
+			if (event.type === 'incident') {
+				const impact = incident.impact === 'none' ? '' : ` [${incident.impact}]`;
+				print(`${style('yellow', '●')} ${style('bold', incident.name)}${impact} · started ${formatDuration(Date.now() - Date.parse(incident.startedAt))} ago · ${incident.url}`);
+				if (incident.latestUpdate) {
+					print(formatUpdate(incident.latestUpdate));
+				}
+				continue;
+			}
 
-	while (!resolvedStatuses.has(incident.status)) {
-		const remaining = argv.flags.maxWait === undefined
-			? pollInterval
-			: argv.flags.maxWait - (Date.now() - startedWatching);
-		if (remaining <= 0) {
-			print(`Still ${incident.status} after ${formatDuration(argv.flags.maxWait!)}. To keep watching, run: ${rerunCommand}`);
-			process.exitCode = 124;
-			break;
+			print(formatUpdate(event.update));
+			// When the update resolves the incident, the watch finishes on its own
+			if (argv.flags.untilUpdate && !resolvedStatuses.has(incident.status)) {
+				print(`Still ${incident.status}. To keep watching, run this again in the background: ${rerunCommand}`);
+				return 1;
+			}
 		}
-		await sleep(Math.min(pollInterval, remaining));
-
-		const next = await poll();
-		if (typeof next === 'string') {
-			print(`${style('red', '!')} Could not check the incident: ${next}`);
-			continue;
+	} catch (error) {
+		if (!maxWaitSignal?.aborted || error !== maxWaitSignal.reason) {
+			throw error;
 		}
-
-		incident = next;
-		const seenUntil = lastSeen;
-		const newUpdates = sortUpdates(next).filter(update => update.created_at > seenUntil);
-		for (const update of newUpdates) {
-			print(formatUpdate(next, update));
-		}
-		lastSeen = newUpdates.at(-1)?.created_at ?? lastSeen;
-
-		if (argv.flags.untilUpdate && newUpdates.length > 0 && !resolvedStatuses.has(next.status)) {
-			print(`Still ${next.status}. To keep watching, run this again in the background: ${rerunCommand}`);
-			process.exitCode = 1;
-			break;
-		}
+		print(`Still ${incident?.status ?? 'unresolved'} after ${formatDuration(maxWait!)}. To keep watching, run: ${rerunCommand}`);
+		return 124;
 	}
 
-	if (resolvedStatuses.has(incident.status)) {
-		const resolvedAt = incident.resolved_at ? Date.parse(incident.resolved_at) : Date.now();
-		print(`${style('green', '✓')} Resolved · lasted ${formatDuration(resolvedAt - startedAt)}`);
-	}
-}
+	// The watch finishes only once the incident resolves
+	const resolvedAt = incident!.resolvedAt ? Date.parse(incident!.resolvedAt) : Date.now();
+	print(`${style('green', '✓')} Resolved · lasted ${formatDuration(resolvedAt - Date.parse(incident!.startedAt))}`);
+	return 0;
+};
+
+process.exitCode = await watch();

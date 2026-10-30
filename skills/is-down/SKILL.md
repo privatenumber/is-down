@@ -36,15 +36,19 @@ Each active incident in the output ends with a `Watch: npx is-down watch <incide
 ## Node.js API
 
 ```ts
-import { getStatus } from 'is-down'
+import { getStatus, watchIncident } from 'is-down'
 import { npm, github } from 'is-down/providers' // One named export per provider ID
 
 const result = await getStatus(npm, { components: ['install'], since: 60 * 60 * 1000 })
 // result.state: 'operational' | 'degraded' | 'error'
 
 await getStatus('https://status.example.com') // Any Statuspage-compatible page
+
+// Yields 'incident', then 'update' for each new update, and 'error' for failed checks.
+// Finishes when the incident resolves; rejects with the reason when `signal` aborts.
+for await (const event of watchIncident(incident.url, { signal })) { /* ... */ }
 ```
 
 `getStatus` checks one page; use `Promise.all` for several. It times out after 10 seconds by default; a passed `signal` replaces that timeout. Network failures, page failures, and timeouts are returned as `state: 'error'`. It throws only for an invalid URL, and rejects when `signal` aborts for another reason.
 
-Read the [CLI docs](https://github.com/privatenumber/is-down/blob/develop/docs/cli.md) when you need a CLI flag, selector form, or degraded rule not shown here, and the [Node.js API docs](https://github.com/privatenumber/is-down/blob/develop/docs/node.md) when you need a `getStatus` option or result field not shown here.
+Read the [CLI docs](https://github.com/privatenumber/is-down/blob/develop/docs/cli.md) when you need a CLI flag, selector form, or degraded rule not shown here, and the [Node.js API docs](https://github.com/privatenumber/is-down/blob/develop/docs/node.md) when you need a `getStatus` or `watchIncident` option, result field, or event not shown here.

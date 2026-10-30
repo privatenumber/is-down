@@ -7,6 +7,14 @@ export type Component = {
 	status: ComponentStatus;
 };
 
+export type IncidentUpdate = {
+
+	/** The incident's status as of this update */
+	status: string;
+	body: string;
+	createdAt: string;
+};
+
 export type Incident = {
 	id: string;
 	name: string;
@@ -19,10 +27,7 @@ export type Incident = {
 	url: string;
 	startedAt: string;
 	resolvedAt?: string;
-	latestUpdate?: {
-		body: string;
-		createdAt: string;
-	};
+	latestUpdate?: IncidentUpdate;
 
 	/** Affected component names. Empty when the page does not link incidents to components. */
 	components: string[];
@@ -77,6 +82,36 @@ export type GetStatusOptions = {
 	 * the signal's reason.
 	 */
 	signal?: AbortSignal;
+};
+
+export type WatchIncidentOptions = {
+
+	/** Milliseconds between checks. Defaults to 1 minute. */
+	interval?: number;
+
+	/** Request timeout per check in milliseconds. Defaults to 10 seconds. */
+	timeout?: number;
+
+	/** Stops the watch. The iterator rejects with the signal's reason. */
+	signal?: AbortSignal;
+};
+
+export type IncidentEvent = {
+
+	/** The first successful check */
+	type: 'incident';
+	incident: Incident;
+} | {
+
+	/** An update posted after the first check */
+	type: 'update';
+	incident: Incident;
+	update: IncidentUpdate;
+} | {
+
+	/** A check that failed. The watch continues. */
+	type: 'error';
+	error: string;
 };
 
 /** A check after its target and options are resolved */

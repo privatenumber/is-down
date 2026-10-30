@@ -72,11 +72,60 @@ type Incident = {
     url: string
     startedAt: string
     resolvedAt?: string
-    latestUpdate?: {
-        body: string
-        createdAt: string
-    }
+    latestUpdate?: IncidentUpdate
     components: string[] // Empty when the page doesn't link incidents to components
 }
+
+type IncidentUpdate = {
+    status: string // The incident's status as of this update
+    body: string
+    createdAt: string
+}
 ```
+
+## `watchIncident(url, options?)`
+
+Watches one incident and returns an async iterator of `IncidentEvent`s. `url` is the URL of an incident on a Statuspage-compatible page, such as the `url` of an `Incident`.
+
+```ts
+import { watchIncident } from 'is-down'
+
+for await (const event of watchIncident('https://status.npmjs.org/incidents/abc123')) {
+    if (event.type === 'update') {
+        console.log(event.update.status, event.update.body)
+    }
+}
+
+// The loop ends when the incident resolves
+```
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `interval` | `number` | `60000` (1 minute) | Milliseconds between checks |
+| `timeout` | `number` | `10000` | Request timeout per check in milliseconds |
+| `signal` | `AbortSignal` | | Stops the watch |
+
+The iterator yields these events:
+
+```ts
+type IncidentEvent = {
+    type: 'incident' // The first successful check
+    incident: Incident
+} | {
+    type: 'update' // An update posted after the first check
+    incident: Incident
+    update: IncidentUpdate
+} | {
+    type: 'error' // A check that failed. The watch continues.
+    error: string
+}
+```
+
+The first event shows the incident's current state, including its latest update. An `update` event's `incident` is the incident as of that check. After the check that finds the incident resolved, the iterator finishes. If the incident had already resolved, the first event is the last.
+
+Failed checks, including timeouts and a missing incident, are yielded as `error` events, and the next check runs after `interval`. To stop on errors, such as an incident that does not exist, break out of the loop.
+
+To stop watching, break out of the loop or abort `signal`. When `signal` aborts, the iterator rejects with the signal's reason. To stop after a limit, pass `AbortSignal.timeout(ms)` and handle its `TimeoutError`.
+
+`watchIncident` throws at the call when `url` is not a valid URL or not an incident URL.
 

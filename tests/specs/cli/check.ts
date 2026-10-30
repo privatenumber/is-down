@@ -392,6 +392,7 @@ describe('check', () => {
 				url: `${page.url}/incidents/abc`,
 				startedAt: active.started_at,
 				latestUpdate: {
+					status: 'investigating',
 					body: 'We are currently investigating this issue.',
 					createdAt: active.incident_updates[0]!.created_at,
 				},

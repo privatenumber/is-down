@@ -26,7 +26,12 @@ export type ApiIncident = {
 	started_at?: string;
 	resolved_at?: string | null;
 	incident_updates?: ApiIncidentUpdate[];
-	components?: { id: string }[];
+
+	/** Statuspage includes each component's name, which the summary also provides */
+	components?: {
+		id: string;
+		name?: string;
+	}[];
 };
 
 export type ApiSummary = {
