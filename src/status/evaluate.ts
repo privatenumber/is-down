@@ -1,25 +1,37 @@
-import type { Incident, PageRequest, ServiceResult } from './types.ts';
+import type {
+	Incident, IncidentUpdate, PageRequest, ServiceResult,
+} from './types.ts';
 import { type ComponentStatus, statusLabels, worstStatus } from './component-status.ts';
 import type { ApiIncident, ApiIncidentUpdate } from './statuspage.ts';
 import type { PageData } from './fetch-page.ts';
 import { scopeComponents } from './scope.ts';
 
-const getLatestUpdate = (updates: ApiIncidentUpdate[] = []) => {
-	let latest: ApiIncidentUpdate | undefined;
-	for (const update of updates) {
-		if (!latest || update.created_at > latest.created_at) {
-			latest = update;
-		}
-	}
-	return latest;
-};
+/**
+ * When the update was posted, in milliseconds. Some pages use local offsets such as `-07:00`,
+ * so the strings only order correctly once parsed.
+ */
+export const updateTime = (update: ApiIncidentUpdate) => Date.parse(update.created_at);
 
-const toIncident = (
+/** The incident's updates, oldest first */
+export const sortUpdates = (incident: ApiIncident) => (
+	(incident.incident_updates ?? []).slice().sort((a, b) => updateTime(a) - updateTime(b))
+);
+
+export const toIncidentUpdate = (
+	incident: ApiIncident,
+	update: ApiIncidentUpdate,
+): IncidentUpdate => ({
+	status: update.status ?? incident.status,
+	body: update.body,
+	createdAt: update.display_at ?? update.created_at,
+});
+
+export const toIncident = (
 	incident: ApiIncident,
 	pageUrl: string,
 	componentNames: Map<string, string>,
 ): Incident => {
-	const latestUpdate = getLatestUpdate(incident.incident_updates);
+	const latestUpdate = sortUpdates(incident).at(-1);
 	return {
 		id: incident.id,
 		name: incident.name,
@@ -28,10 +40,7 @@ const toIncident = (
 		url: `${pageUrl}/incidents/${incident.id}`,
 		startedAt: incident.started_at ?? incident.created_at,
 		resolvedAt: incident.resolved_at ?? undefined,
-		latestUpdate: latestUpdate && {
-			body: latestUpdate.body,
-			createdAt: latestUpdate.display_at ?? latestUpdate.created_at,
-		},
+		latestUpdate: latestUpdate && toIncidentUpdate(incident, latestUpdate),
 		components: incident.components?.map(
 			component => componentNames.get(component.id) ?? component.id,
 		) ?? [],

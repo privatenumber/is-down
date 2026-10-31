@@ -3,6 +3,7 @@
 ```
 is-down [flags...] [services...]
 is-down list [query] [--json]
+is-down watch <incident> [--until-update] [--max-wait <duration>]
 ```
 
 With no services, `is-down` checks the defaults: npm, GitHub, Node.js, Vercel, Cloudflare, and Netlify.
@@ -72,7 +73,7 @@ While the checks run in an interactive terminal, a line per service updates as e
 Each service prints one line. Operational services show only a ✓ and their name, so problems stand out. In terminals that support hyperlinks, the name links to the service's status page. A service that needs attention also shows its status, followed by details:
 
 - Components that are not operational. When more than three components in one group are affected, such as Cloudflare data centers, the group is summarized in one line.
-- Active incidents, with their stage, age, latest update, affected components, and link.
+- Active incidents, with their stage, age, latest update, affected components, and the [`watch`](#watch) command that follows them.
 - Incidents resolved within the `--since` window.
 
 ## `list`
@@ -95,6 +96,43 @@ github, gh      www.githubstatus.com
 The first column lists the ID and aliases, which are what `is-down` accepts. Entries marked "(not checkable)" have no compatible status API; checking one prints the page to open. When no service matches, `list` exits `2`.
 
 `--json` prints the matching entries keyed by ID, in the same shape as [`is-down/providers.json`](providers.md).
+
+## `watch`
+
+```
+is-down watch <incident> [--until-update] [--max-wait <duration>]
+```
+
+Follows one incident and prints each update as it is posted, until the incident resolves. `<incident>` is an incident URL, such as the one `is-down` prints under each active incident.
+
+```
+$ is-down watch https://status.npmjs.org/incidents/abc123
+● Increased error rates for package installs [major] · started 42m ago · https://status.npmjs.org/incidents/abc123
+  identified · The issue has been identified and a fix is being implemented.
+  monitoring · A fix has been deployed. We are monitoring the results.
+  resolved · This incident has been resolved.
+✓ Resolved · lasted 1h12m
+```
+
+The first lines show the incident and its latest update. After that, each new update prints as one line, and so does a check that fails. A failed request, such as a timeout or HTTP 5xx, does not stop the watch, even on the first check. The incident is checked once a minute.
+
+| Flag | Description |
+| --- | --- |
+| `--until-update` | Exit after the next check that finds new updates, instead of waiting for the incident to resolve. Every update from that check is printed, and the last line is the command to run again to keep watching. |
+| `--max-wait <duration>` | Stop after this long, such as `10m` or `1h`, and exit `124`. Must be longer than `0`. |
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | The incident resolved, or had already resolved. |
+| `1` | A new update was posted and the incident is still active. Only with `--until-update`. |
+| `124` | `--max-wait` was reached and the incident is still active. |
+| `2` | The incident was not found, the page is not a supported status page, or the input is not an incident URL. These are checked until the first successful check; after that, failures only print a line. |
+
+### Watching from an agent
+
+Some agent harnesses only report a background command when it exits. Run `watch` with `--until-update` there, so each update ends the command. Start the same command again in the background before acting on the updates. The new watch prints the latest update first. So if one update is posted between the two runs, it still shows. If several are, only the newest shows, and a rerun can show an update the previous run already printed.
+
+Harnesses that report each output line while a command runs can watch without `--until-update`. Set `--max-wait` below the harness's time limit for background commands.
 
 ## `skills`
 

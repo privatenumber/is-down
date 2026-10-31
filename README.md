@@ -11,7 +11,7 @@ $ npx is-down npm:install github:git vercel
     ● Increased error rates for package installs [major] · identified · started 42m ago
       The issue has been identified and a fix is being implemented.
       Affected: Package installation
-      https://status.npmjs.org/incidents/abc123
+      Watch: npx is-down watch https://status.npmjs.org/incidents/abc123
 ✓ GitHub › Git Operations
 ✓ Vercel
 ```
@@ -48,6 +48,12 @@ Check any Statuspage-compatible page, optionally scoped to a component:
 
 ```sh
 npx is-down "https://status.example.com#builds"
+```
+
+Follow an incident until it resolves. Each update prints as it is posted, and the command exits when the incident resolves:
+
+```sh
+npx is-down watch https://status.npmjs.org/incidents/abc123 && npm publish
 ```
 
 See what happened recently. Incidents resolved within the window are listed but don't affect the exit code:

@@ -1,12 +1,16 @@
 import { styleText } from 'node:util';
 import ansis, { link } from 'ansis';
-import type { Component, Incident, ServiceResult } from '../status/types.ts';
+import type {
+	Component, Incident, IncidentUpdate, ServiceResult,
+} from '../status/types.ts';
 import { type ComponentStatus, statusLabels, worstStatus } from '../status/component-status.ts';
 import { formatDuration } from './duration.ts';
 
 type Style = Parameters<typeof styleText>[0];
 
-const style = (format: Style, text: string) => styleText(format, text, { stream: process.stdout });
+export const style = (format: Style, text: string) => (
+	styleText(format, text, { stream: process.stdout })
+);
 
 // Hyperlinks only go to terminals, so CI logs and redirected output stay plain text.
 // Without color support, ansis would print "text (url)" instead, so plain text is used there too.
@@ -86,8 +90,27 @@ const formatIncident = (incident: Incident, now: number) => {
 	if (incident.components.length > 0) {
 		lines.push(style('dim', `  Affected: ${incident.components.join(', ')}`));
 	}
-	lines.push(style('dim', `  ${incident.url}`));
+	// Active incidents show the command that follows them, which also carries the URL
+	lines.push(style('dim', resolvedAt === undefined
+		? `  Watch: npx is-down watch ${linkTo(incident.url, incident.url)}`
+		: `  ${incident.url}`));
 	return lines.map(line => `${indent}${line}`);
+};
+
+/** One update as one line, so tools that treat each output line as an event receive it whole */
+export const formatUpdate = (update: IncidentUpdate) => (
+	`  ${style('bold', update.status)} · ${update.body.replaceAll(/\s+/g, ' ').trim()}`
+);
+
+/** The first lines of `is-down watch`: the incident and its latest update */
+export const formatWatchedIncident = (incident: Incident, now = Date.now()) => [
+	`${style('yellow', '●')} ${style('bold', incident.name)}${impactTag(incident)} · started ${formatDuration(now - Date.parse(incident.startedAt))} ago · ${incident.url}`,
+	...(incident.latestUpdate ? [formatUpdate(incident.latestUpdate)] : []),
+];
+
+export const formatResolved = (incident: Incident, now = Date.now()) => {
+	const resolvedAt = incident.resolvedAt ? Date.parse(incident.resolvedAt) : now;
+	return `${style('green', '✓')} Resolved · lasted ${formatDuration(resolvedAt - Date.parse(incident.startedAt))}`;
 };
 
 export const formatResults = (results: ServiceResult[], now = Date.now()) => {

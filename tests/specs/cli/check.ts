@@ -59,7 +59,7 @@ describe('check', () => {
 				'    ● Elevated build errors [minor] · monitoring · started 30m ago',
 				'      A fix has been implemented.',
 				'      Affected: Builds',
-				`      ${page.url}/incidents/abc`,
+				`      Watch: npx is-down watch ${page.url}/incidents/abc`,
 				'',
 			].join('\n'));
 		});
@@ -392,6 +392,7 @@ describe('check', () => {
 				url: `${page.url}/incidents/abc`,
 				startedAt: active.started_at,
 				latestUpdate: {
+					status: 'investigating',
 					body: 'We are currently investigating this issue.',
 					createdAt: active.incident_updates[0]!.created_at,
 				},

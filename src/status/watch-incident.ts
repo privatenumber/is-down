@@ -1,0 +1,130 @@
+import { poll } from '../utils/poll.ts';
+import type { IncidentEvent, WatchIncidentOptions } from './types.ts';
+import {
+	type ApiIncident,
+	type ApiIncidentUpdate,
+	describeFailure,
+	fetchIncidentById,
+	resolvedStatuses,
+} from './statuspage.ts';
+import {
+	sortUpdates, toIncident, toIncidentUpdate, updateTime,
+} from './evaluate.ts';
+
+type CheckFailure = Omit<Extract<IncidentEvent, { type: 'error' }>, 'type'>;
+
+const parseIncidentUrl = (url: string) => {
+	const parsed = new URL(url);
+	const match = parsed.pathname.match(/^(.*?)\/incidents\/([^/]+)\/?$/);
+	if (!match) {
+		throw new TypeError(`Not an incident URL: ${url}`);
+	}
+	return {
+		pageUrl: `${parsed.origin}${match[1]}`,
+		incidentId: decodeURIComponent(match[2]!),
+	};
+};
+
+const updatesAfter = (updates: ApiIncidentUpdate[], time: number) => (
+	updates.filter(update => updateTime(update) > time)
+);
+
+/**
+ * Watches one incident on a Statuspage-compatible page, such as
+ * `https://status.npmjs.org/incidents/abc123`.
+ *
+ * Yields an `incident` event for the first successful check, then an `update` event for each
+ * later check that finds new updates, with those updates oldest first. Failed checks are yielded
+ * as `error` events and the watch continues.
+ * The iterator finishes after the check that finds the incident resolved.
+ *
+ * Throws at the call for an invalid or non-incident URL, or an `interval` or `timeout` that is not
+ * positive. Rejects with the signal's reason when `options.signal` aborts.
+ */
+export const watchIncident = (
+	url: string,
+	{
+		interval = 60_000,
+		timeout = 10_000,
+		signal,
+	}: WatchIncidentOptions = {},
+): AsyncGenerator<IncidentEvent, void, undefined> => {
+	// Validated before the generator starts, so invalid input throws at the call
+	const { pageUrl, incidentId } = parseIncidentUrl(url);
+	for (const [name, value] of Object.entries({
+		interval,
+		timeout,
+	})) {
+		if (!(value > 0)) {
+			throw new RangeError(`${name} must be a positive number of milliseconds, received ${value}`);
+		}
+	}
+
+	/** Returns the incident, or why it could not be read */
+	const check = async (): Promise<ApiIncident | CheckFailure> => {
+		const checkSignal = signal
+			? AbortSignal.any([signal, AbortSignal.timeout(timeout)])
+			: AbortSignal.timeout(timeout);
+		try {
+			return await fetchIncidentById(pageUrl, incidentId, checkSignal) ?? {
+				kind: 'not-found',
+				error: `Incident ${incidentId} not found on ${pageUrl}`,
+			};
+		} catch (error) {
+			// The caller's abort ends the watch. Only failures of this check become events.
+			signal?.throwIfAborted();
+			const { kind, message } = describeFailure(error, pageUrl);
+			return {
+				kind,
+				error: message,
+			};
+		}
+	};
+
+	return (async function* watch() {
+		// Undefined until the first successful check
+		let seenUntil: number | undefined;
+
+		const checks = poll(check, {
+			interval,
+			signal,
+		});
+		for await (const result of checks) {
+			if ('error' in result) {
+				yield {
+					type: 'error',
+					...result,
+				};
+				continue;
+			}
+
+			// Incidents carry their components' names, so no summary is needed
+			const componentNames = new Map(
+				result.components?.map(component => [component.id, component.name ?? component.id]),
+			);
+			const incident = toIncident(result, pageUrl, componentNames);
+			const updates = sortUpdates(result);
+			if (seenUntil === undefined) {
+				yield {
+					type: 'incident',
+					incident,
+				};
+			} else {
+				const newUpdates = updatesAfter(updates, seenUntil);
+				if (newUpdates.length > 0) {
+					yield {
+						type: 'update',
+						incident,
+						updates: newUpdates.map(update => toIncidentUpdate(result, update)),
+					};
+				}
+			}
+
+			const latest = updates.at(-1);
+			seenUntil = latest ? updateTime(latest) : Number.NEGATIVE_INFINITY;
+			if (resolvedStatuses.has(result.status)) {
+				return;
+			}
+		}
+	})();
+};
