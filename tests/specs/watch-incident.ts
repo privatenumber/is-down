@@ -9,7 +9,7 @@ import {
 const interval = 10;
 
 describe('watchIncident', () => {
-	test('yields the incident, then each update, and finishes when it resolves', async () => {
+	test('yields the incident, then the updates of each check, and finishes when it resolves', async () => {
 		const states = [
 			incidentState([investigating]),
 			incidentState([investigating]),
@@ -23,11 +23,7 @@ describe('watchIncident', () => {
 		}
 
 		const [, identifiedUpdate, resolvedUpdate] = states[2]!.incident.incident_updates;
-		expect(events.map(event => (event.type === 'error' ? event : [event.type, event.incident.status]))).toStrictEqual([
-			['incident', 'investigating'],
-			['update', 'resolved'],
-			['update', 'resolved'],
-		]);
+		expect(events.map(event => event.type)).toStrictEqual(['incident', 'update']);
 		expect(events[0]).toStrictEqual({
 			type: 'incident',
 			incident: {
@@ -46,17 +42,22 @@ describe('watchIncident', () => {
 				components: [],
 			},
 		});
-		expect(events.slice(1).map(event => event.type === 'update' && event.update)).toStrictEqual([
-			{
-				status: 'identified',
-				body: 'The cause has been\nidentified.',
-				createdAt: identifiedUpdate!.created_at,
-			},
-			{
-				status: 'resolved',
-				body: 'This incident has been resolved.',
-				createdAt: resolvedUpdate!.created_at,
-			},
+		// One check found both updates, so they arrive together, oldest first
+		const update = events[1]!;
+		expect(update.type === 'update' && [update.incident.status, update.updates]).toStrictEqual([
+			'resolved',
+			[
+				{
+					status: 'identified',
+					body: 'The cause has been\nidentified.',
+					createdAt: identifiedUpdate!.created_at,
+				},
+				{
+					status: 'resolved',
+					body: 'This incident has been resolved.',
+					createdAt: resolvedUpdate!.created_at,
+				},
+			],
 		]);
 	});
 
@@ -92,7 +93,7 @@ describe('watchIncident', () => {
 		const statuses: string[] = [];
 		for await (const event of watchIncident(`${page.url}/incidents/abc`, { interval })) {
 			if (event.type === 'update') {
-				statuses.push(event.update.status);
+				statuses.push(...event.updates.map(item => item.status));
 			}
 		}
 		expect(statuses).toStrictEqual(['identified', 'resolved']);

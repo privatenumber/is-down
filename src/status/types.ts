@@ -103,10 +103,12 @@ export type IncidentEvent = {
 	incident: Incident;
 } | {
 
-	/** An update posted after the first check */
+	/** A check that found updates posted since the previous check */
 	type: 'update';
 	incident: Incident;
-	update: IncidentUpdate;
+
+	/** The new updates, oldest first */
+	updates: IncidentUpdate[];
 } | {
 
 	/** A check that failed. The watch continues. */

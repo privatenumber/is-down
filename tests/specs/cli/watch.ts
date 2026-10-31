@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'manten';
 import { createStatusPage } from '../../utils/status-page.ts';
 import {
-	incidentPath, incidentState, sequence, investigating, identified, resolved,
+	incidentPath, incidentState, sequence, investigating, identified, monitoring, resolved,
 } from '../../utils/incident-sequence.ts';
 import { run } from './run.ts';
 
@@ -72,6 +72,42 @@ describe('watch', () => {
 			].join('\n'),
 			stderr: '',
 		});
+	});
+
+	test('--until-update prints every update found by the same check', async () => {
+		await using page = await createStatusPage(sequence([
+			incidentState([investigating]),
+			incidentState([investigating, identified, monitoring]),
+		]));
+
+		const incidentUrl = `${page.url}/incidents/abc`;
+		const { exitCode, stdout } = await run(['watch', incidentUrl, '--until-update'], { env: fastPolling });
+		expect(exitCode).toBe(1);
+		expect(stdout).toBe([
+			header(page.url),
+			'  investigating · We are investigating.',
+			'  identified · The cause has been identified.',
+			'  monitoring · A fix has been deployed.',
+			`Still monitoring. To keep watching, run this again in the background: npx is-down watch ${incidentUrl} --until-update`,
+			'',
+		].join('\n'));
+	});
+
+	test('--until-update exits 0 when the update resolves the incident', async () => {
+		await using page = await createStatusPage(sequence([
+			incidentState([investigating]),
+			incidentState([investigating, resolved]),
+		]));
+
+		const { exitCode, stdout } = await run(['watch', `${page.url}/incidents/abc`, '--until-update'], { env: fastPolling });
+		expect(exitCode).toBe(0);
+		expect(stdout).toBe([
+			header(page.url),
+			'  investigating · We are investigating.',
+			'  resolved · This incident has been resolved.',
+			'✓ Resolved · lasted 42m',
+			'',
+		].join('\n'));
 	});
 
 	test('--max-wait exits 124 when the incident is still active', async () => {

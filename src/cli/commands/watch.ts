@@ -4,7 +4,9 @@ import type { Incident } from '../../status/types.ts';
 import { watchIncident } from '../../status/watch-incident.ts';
 import { resolvedStatuses } from '../../status/statuspage.ts';
 import { parseDuration, formatDuration } from '../duration.ts';
-import { style, formatUpdate, formatWatchedIncident } from '../format.ts';
+import {
+	style, formatUpdate, formatWatchedIncident, formatResolved,
+} from '../format.ts';
 import { resolveTargets, TargetError } from '../resolve.ts';
 
 const argv = cli({
@@ -76,17 +78,13 @@ const watch = async () => {
 			}
 
 			incident = event.incident;
-			if (event.type === 'incident') {
-				print(formatWatchedIncident(incident));
-				if (incident.latestUpdate) {
-					print(formatUpdate(incident.latestUpdate));
-				}
-				continue;
-			}
+			const lines = event.type === 'incident'
+				? formatWatchedIncident(incident)
+				: event.updates.map(formatUpdate);
+			lines.forEach(print);
 
-			print(formatUpdate(event.update));
-			// When the update resolves the incident, the watch finishes on its own
-			if (argv.flags.untilUpdate && !resolvedStatuses.has(incident.status)) {
+			// When the updates resolve the incident, the watch finishes on its own
+			if (event.type === 'update' && argv.flags.untilUpdate && !resolvedStatuses.has(incident.status)) {
 				print(`Still ${incident.status}. To keep watching, run this again in the background: ${rerunCommand}`);
 				return 1;
 			}
@@ -99,9 +97,10 @@ const watch = async () => {
 		return 124;
 	}
 
-	// The watch finishes only once the incident resolves
-	const resolvedAt = incident!.resolvedAt ? Date.parse(incident!.resolvedAt) : Date.now();
-	print(`${style('green', '✓')} Resolved · lasted ${formatDuration(resolvedAt - Date.parse(incident!.startedAt))}`);
+	// The watch finishes only after a successful check finds the incident resolved
+	if (incident) {
+		print(formatResolved(incident));
+	}
 	return 0;
 };
 

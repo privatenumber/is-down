@@ -44,7 +44,7 @@ const result = await getStatus(npm, { components: ['install'], since: 60 * 60 * 
 
 await getStatus('https://status.example.com') // Any Statuspage-compatible page
 
-// Yields 'incident', then 'update' for each new update, and 'error' for failed checks.
+// Yields 'incident', then 'update' with each check's new updates, and 'error' for failed checks.
 // Finishes when the incident resolves; rejects with the reason when `signal` aborts.
 for await (const event of watchIncident(incident.url, { signal })) { /* ... */ }
 ```

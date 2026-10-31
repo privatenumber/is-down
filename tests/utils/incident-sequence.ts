@@ -44,4 +44,5 @@ export const sequence = (states: (object | number)[]) => {
 
 export const investigating: Update = ['investigating', 'We are investigating.', 40];
 export const identified: Update = ['identified', 'The cause has been\nidentified.', 20];
+export const monitoring: Update = ['monitoring', 'A fix has been deployed.', 10];
 export const resolved: Update = ['resolved', 'This incident has been resolved.', 0];

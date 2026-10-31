@@ -97,15 +97,21 @@ const formatIncident = (incident: Incident, now: number) => {
 	return lines.map(line => `${indent}${line}`);
 };
 
-/** The first line of `is-down watch` */
-export const formatWatchedIncident = (incident: Incident, now = Date.now()) => (
-	`${style('yellow', '●')} ${style('bold', incident.name)}${impactTag(incident)} · started ${formatDuration(now - Date.parse(incident.startedAt))} ago · ${incident.url}`
-);
-
 /** One update as one line, so tools that treat each output line as an event receive it whole */
 export const formatUpdate = (update: IncidentUpdate) => (
 	`  ${style('bold', update.status)} · ${update.body.replaceAll(/\s+/g, ' ').trim()}`
 );
+
+/** The first lines of `is-down watch`: the incident and its latest update */
+export const formatWatchedIncident = (incident: Incident, now = Date.now()) => [
+	`${style('yellow', '●')} ${style('bold', incident.name)}${impactTag(incident)} · started ${formatDuration(now - Date.parse(incident.startedAt))} ago · ${incident.url}`,
+	...(incident.latestUpdate ? [formatUpdate(incident.latestUpdate)] : []),
+];
+
+export const formatResolved = (incident: Incident, now = Date.now()) => {
+	const resolvedAt = incident.resolvedAt ? Date.parse(incident.resolvedAt) : now;
+	return `${style('green', '✓')} Resolved · lasted ${formatDuration(resolvedAt - Date.parse(incident.startedAt))}`;
+};
 
 export const formatResults = (results: ServiceResult[], now = Date.now()) => {
 	const labels = results.map(label);

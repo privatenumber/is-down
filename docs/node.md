@@ -92,7 +92,9 @@ import { watchIncident } from 'is-down'
 
 for await (const event of watchIncident('https://status.npmjs.org/incidents/abc123')) {
     if (event.type === 'update') {
-        console.log(event.update.status, event.update.body)
+        for (const update of event.updates) {
+            console.log(update.status, update.body)
+        }
     }
 }
 
@@ -112,16 +114,16 @@ type IncidentEvent = {
     type: 'incident' // The first successful check
     incident: Incident
 } | {
-    type: 'update' // An update posted after the first check
+    type: 'update' // A later check that found new updates
     incident: Incident
-    update: IncidentUpdate
+    updates: IncidentUpdate[] // Oldest first
 } | {
     type: 'error' // A check that failed. The watch continues.
     error: string
 }
 ```
 
-The first event shows the incident's current state, including its latest update. An `update` event's `incident` is the incident as of that check. After the check that finds the incident resolved, the iterator finishes. If the incident had already resolved, the first event is the last.
+The first event shows the incident's current state, including its latest update. An `update` event holds every update that one check found, and its `incident` is the incident as of that check. After the check that finds the incident resolved, the iterator finishes. If the incident had already resolved, the first event is the last.
 
 Failed checks, including timeouts and a missing incident, are yielded as `error` events, and the next check runs after `interval`. To stop on errors, such as an incident that does not exist, break out of the loop.
 

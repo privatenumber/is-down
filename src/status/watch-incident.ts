@@ -32,7 +32,8 @@ const updatesAfter = (updates: ApiIncidentUpdate[], time: number) => (
  * `https://status.npmjs.org/incidents/abc123`.
  *
  * Yields an `incident` event for the first successful check, then an `update` event for each
- * update posted after it. Failed checks are yielded as `error` events and the watch continues.
+ * later check that finds new updates, with those updates oldest first. Failed checks are yielded
+ * as `error` events and the watch continues.
  * The iterator finishes after the check that finds the incident resolved.
  *
  * Throws only for an invalid or non-incident URL, and rejects with the signal's reason when
@@ -93,11 +94,12 @@ export const watchIncident = (
 					incident,
 				};
 			} else {
-				for (const update of updatesAfter(updates, seenUntil)) {
+				const newUpdates = updatesAfter(updates, seenUntil);
+				if (newUpdates.length > 0) {
 					yield {
 						type: 'update',
 						incident,
-						update: toIncidentUpdate(result, update),
+						updates: newUpdates.map(update => toIncidentUpdate(result, update)),
 					};
 				}
 			}
