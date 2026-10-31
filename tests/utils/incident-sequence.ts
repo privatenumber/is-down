@@ -1,4 +1,9 @@
-import { ago, minutes } from './status-page.ts';
+import { minutes } from './status-page.ts';
+
+// One base time for every state, so an update keeps the same timestamp across checks,
+// as on a real status page
+const baseTime = Date.now();
+const ago = (milliseconds: number) => new Date(baseTime - milliseconds).toISOString();
 
 export const incidentPath = '/api/v2/incidents/abc.json';
 
