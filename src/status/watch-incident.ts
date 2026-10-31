@@ -7,7 +7,9 @@ import {
 	fetchIncidentById,
 	resolvedStatuses,
 } from './statuspage.ts';
-import { sortUpdates, toIncident, toIncidentUpdate } from './evaluate.ts';
+import {
+	sortUpdates, toIncident, toIncidentUpdate, updateTime,
+} from './evaluate.ts';
 
 const parseIncidentUrl = (url: string) => {
 	const parsed = new URL(url);
@@ -21,8 +23,8 @@ const parseIncidentUrl = (url: string) => {
 	};
 };
 
-const updatesAfter = (updates: ApiIncidentUpdate[], createdAt: string) => (
-	updates.filter(update => update.created_at > createdAt)
+const updatesAfter = (updates: ApiIncidentUpdate[], time: number) => (
+	updates.filter(update => updateTime(update) > time)
 );
 
 /**
@@ -64,7 +66,7 @@ export const watchIncident = (
 
 	return (async function* watch() {
 		// Undefined until the first successful check
-		let seenUntil: string | undefined;
+		let seenUntil: number | undefined;
 
 		const checks = poll(check, {
 			interval,
@@ -100,7 +102,8 @@ export const watchIncident = (
 				}
 			}
 
-			seenUntil = updates.at(-1)?.created_at ?? '';
+			const latest = updates.at(-1);
+			seenUntil = latest ? updateTime(latest) : Number.NEGATIVE_INFINITY;
 			if (resolvedStatuses.has(result.status)) {
 				return;
 			}

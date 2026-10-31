@@ -60,6 +60,44 @@ describe('watchIncident', () => {
 		]);
 	});
 
+	test('orders updates by time across a daylight saving change', async () => {
+		// US daylight saving ends at 2026-11-01T02:00-07:00, so local times repeat an hour
+		const update = (status: string, createdAt: string) => ({
+			status,
+			body: status,
+			created_at: createdAt,
+		});
+		const investigatingUpdate = update('investigating', '2026-11-01T01:40:00.000-07:00');
+		const state = (status: string, updates: ReturnType<typeof update>[]) => ({
+			incident: {
+				id: 'abc',
+				name: 'Elevated build errors',
+				status,
+				impact: 'major',
+				created_at: investigatingUpdate.created_at,
+				resolved_at: null,
+				incident_updates: updates,
+			},
+		});
+		await using page = await createStatusPage(sequence([
+			state('investigating', [investigatingUpdate]),
+			state('resolved', [
+				// Newest first, as Statuspage returns them. Both are later than 01:40-07:00.
+				update('resolved', '2026-11-01T01:30:00.000-08:00'),
+				update('identified', '2026-11-01T01:10:00.000-08:00'),
+				investigatingUpdate,
+			]),
+		]));
+
+		const statuses: string[] = [];
+		for await (const event of watchIncident(`${page.url}/incidents/abc`, { interval })) {
+			if (event.type === 'update') {
+				statuses.push(event.update.status);
+			}
+		}
+		expect(statuses).toStrictEqual(['identified', 'resolved']);
+	});
+
 	test('failed checks are yielded and the watch continues', async () => {
 		await using page = await createStatusPage(sequence([
 			500,

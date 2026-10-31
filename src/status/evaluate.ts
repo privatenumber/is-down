@@ -6,11 +6,15 @@ import type { ApiIncident, ApiIncidentUpdate } from './statuspage.ts';
 import type { PageData } from './fetch-page.ts';
 import { scopeComponents } from './scope.ts';
 
+/**
+ * When the update was posted, in milliseconds. Some pages use local offsets such as `-07:00`,
+ * so the strings only order correctly once parsed.
+ */
+export const updateTime = (update: ApiIncidentUpdate) => Date.parse(update.created_at);
+
 /** The incident's updates, oldest first */
 export const sortUpdates = (incident: ApiIncident) => (
-	(incident.incident_updates ?? []).slice().sort(
-		(a, b) => (a.created_at < b.created_at ? -1 : (a.created_at > b.created_at ? 1 : 0)),
-	)
+	(incident.incident_updates ?? []).slice().sort((a, b) => updateTime(a) - updateTime(b))
 );
 
 export const toIncidentUpdate = (
