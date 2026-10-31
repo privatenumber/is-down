@@ -113,6 +113,12 @@ export type IncidentEvent = {
 
 	/** A check that failed. The watch continues. */
 	type: 'error';
+
+	/**
+	 * `not-found`: the page has no such incident. `unsupported`: the page is not a supported
+	 * status page. `request`: the request failed, which can be temporary, such as HTTP 5xx.
+	 */
+	kind: 'not-found' | 'unsupported' | 'request';
 	error: string;
 };
 

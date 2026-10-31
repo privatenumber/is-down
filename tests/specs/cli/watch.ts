@@ -142,6 +142,26 @@ describe('watch', () => {
 		expect(stdout).toContain('✓ Resolved');
 	});
 
+	test('a failed request before the first successful check does not stop the watch', async () => {
+		await using page = await createStatusPage(sequence([
+			503,
+			incidentState([investigating, resolved]),
+		]));
+
+		const result = await run(['watch', `${page.url}/incidents/abc`], { env: fastPolling });
+		expect(result).toStrictEqual({
+			exitCode: 0,
+			stdout: [
+				`! Could not check the incident: HTTP 503 from ${page.url}${incidentPath}`,
+				header(page.url),
+				'  resolved · This incident has been resolved.',
+				'✓ Resolved · lasted 42m',
+				'',
+			].join('\n'),
+			stderr: '',
+		});
+	});
+
 	test('a missing incident exits 2', async () => {
 		await using page = await createStatusPage({
 			'/api/v2/incidents.json': { incidents: [] },

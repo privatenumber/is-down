@@ -11,6 +11,8 @@ import {
 	sortUpdates, toIncident, toIncidentUpdate, updateTime,
 } from './evaluate.ts';
 
+type CheckFailure = Omit<Extract<IncidentEvent, { type: 'error' }>, 'type'>;
+
 const parseIncidentUrl = (url: string) => {
 	const parsed = new URL(url);
 	const match = parsed.pathname.match(/^(.*?)\/incidents\/([^/]+)\/?$/);
@@ -51,17 +53,23 @@ export const watchIncident = (
 	const { pageUrl, incidentId } = parseIncidentUrl(url);
 
 	/** Returns the incident, or why it could not be read */
-	const check = async (): Promise<ApiIncident | string> => {
+	const check = async (): Promise<ApiIncident | CheckFailure> => {
 		const checkSignal = signal
 			? AbortSignal.any([signal, AbortSignal.timeout(timeout)])
 			: AbortSignal.timeout(timeout);
 		try {
-			const incident = await fetchIncidentById(pageUrl, incidentId, checkSignal);
-			return incident ?? `Incident ${incidentId} not found on ${pageUrl}`;
+			return await fetchIncidentById(pageUrl, incidentId, checkSignal) ?? {
+				kind: 'not-found',
+				error: `Incident ${incidentId} not found on ${pageUrl}`,
+			};
 		} catch (error) {
 			// The caller's abort ends the watch. Only failures of this check become events.
 			signal?.throwIfAborted();
-			return describeFailure(error, pageUrl);
+			const { kind, message } = describeFailure(error, pageUrl);
+			return {
+				kind,
+				error: message,
+			};
 		}
 	};
 
@@ -74,10 +82,10 @@ export const watchIncident = (
 			signal,
 		});
 		for await (const result of checks) {
-			if (typeof result === 'string') {
+			if ('error' in result) {
 				yield {
 					type: 'error',
-					error: result,
+					...result,
 				};
 				continue;
 			}

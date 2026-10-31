@@ -119,13 +119,20 @@ type IncidentEvent = {
     updates: IncidentUpdate[] // Oldest first
 } | {
     type: 'error' // A check that failed. The watch continues.
+    kind: 'not-found' | 'unsupported' | 'request'
     error: string
 }
 ```
 
 The first event shows the incident's current state, including its latest update. An `update` event holds every update that one check found, and its `incident` is the incident as of that check. After the check that finds the incident resolved, the iterator finishes. If the incident had already resolved, the first event is the last.
 
-Failed checks, including timeouts and a missing incident, are yielded as `error` events, and the next check runs after `interval`. To stop on errors, such as an incident that does not exist, break out of the loop.
+Failed checks are yielded as `error` events, and the next check runs after `interval`. `kind` tells whether a retry can help:
+
+- `not-found`: the page has no incident with this ID.
+- `unsupported`: the page is not a Statuspage-compatible status page.
+- `request`: the request failed or timed out, which can be temporary, such as HTTP 5xx during an outage.
+
+To stop on errors that a retry won't fix, break out of the loop on `not-found` or `unsupported`.
 
 To stop watching, break out of the loop or abort `signal`. When `signal` aborts, the iterator rejects with the signal's reason. To stop after a limit, pass `AbortSignal.timeout(ms)` and handle its `TimeoutError`.
 

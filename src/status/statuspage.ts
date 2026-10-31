@@ -49,19 +49,41 @@ export type ApiSummary = {
 /** Incident statuses after which no more updates are expected */
 export const resolvedStatuses = new Set(['resolved', 'postmortem']);
 
+/**
+ * `request`: the request failed, which can be temporary, such as a network error or HTTP 5xx.
+ * `unsupported`: the page answered, but not as a supported status page, which a retry won't fix.
+ */
+export type FailureKind = 'request' | 'unsupported';
+
 /** An expected failure of a status page, reported as a result instead of thrown */
-export class PageError extends Error {}
+export class PageError extends Error {
+	kind: FailureKind;
+
+	constructor(message: string, kind: FailureKind = 'unsupported') {
+		super(message);
+		this.kind = kind;
+	}
+}
 
 /**
  * Describes an expected failure of a request to `pageUrl`: a `PageError` or a timeout.
  * Rethrows anything else, such as an abort for another reason.
  */
-export const describeFailure = (error: unknown, pageUrl: string) => {
+export const describeFailure = (error: unknown, pageUrl: string): {
+	kind: FailureKind;
+	message: string;
+} => {
 	if (error instanceof PageError) {
-		return error.message;
+		return {
+			kind: error.kind,
+			message: error.message,
+		};
 	}
 	if (error instanceof DOMException && error.name === 'TimeoutError') {
-		return `Timed out reaching ${pageUrl}`;
+		return {
+			kind: 'request',
+			message: `Timed out reaching ${pageUrl}`,
+		};
 	}
 	throw error;
 };
@@ -81,7 +103,7 @@ const request = async (url: string, signal: AbortSignal) => {
 		// fetch() rejects with a TypeError for network failures such as DNS or connection errors
 		if (error instanceof TypeError) {
 			const cause = error.cause as FetchCause | undefined;
-			throw new PageError(`Request to ${url} failed: ${cause?.code ?? cause?.message ?? error.message}`);
+			throw new PageError(`Request to ${url} failed: ${cause?.code ?? cause?.message ?? error.message}`, 'request');
 		}
 		throw error;
 	}
@@ -89,11 +111,9 @@ const request = async (url: string, signal: AbortSignal) => {
 
 const readJson = async (response: Response, url: string, signal: AbortSignal) => {
 	if (!response.ok) {
-		throw new PageError(
-			response.status === 404
-				? `Not a supported status page: ${url} returned HTTP 404`
-				: `HTTP ${response.status} from ${url}`,
-		);
+		throw response.status === 404
+			? new PageError(`Not a supported status page: ${url} returned HTTP 404`)
+			: new PageError(`HTTP ${response.status} from ${url}`, 'request');
 	}
 
 	try {

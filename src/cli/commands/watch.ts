@@ -68,8 +68,9 @@ const watch = async () => {
 			signal: maxWaitSignal,
 		})) {
 			if (event.type === 'error') {
-				// Before the first successful check, the incident may not exist, so stop
-				if (!incident) {
+				// Until a check succeeds, a missing incident or an unsupported page is not worth
+				// retrying. A failed request can be temporary, so the watch continues.
+				if (!incident && event.kind !== 'request') {
 					process.stderr.write(`${styleText('red', 'Error:', { stream: process.stderr })} ${event.error}\n`);
 					return 2;
 				}

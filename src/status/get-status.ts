@@ -49,6 +49,6 @@ export const getStatus = async (
 		return evaluatePage(request, data, since);
 	} catch (error) {
 		// Timeouts are page failures. Other aborts propagate with their own reason.
-		return errorResult(request, describeFailure(error, request.url));
+		return errorResult(request, describeFailure(error, request.url).message);
 	}
 };

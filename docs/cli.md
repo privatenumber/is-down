@@ -114,7 +114,7 @@ $ is-down watch https://status.npmjs.org/incidents/abc123
 ✓ Resolved · lasted 1h12m
 ```
 
-The first lines show the incident and its latest update. After that, each new update prints as one line, and so does a check that fails. A failed check does not stop the watch. The incident is checked once a minute.
+The first lines show the incident and its latest update. After that, each new update prints as one line, and so does a check that fails. A failed request, such as a timeout or HTTP 5xx, does not stop the watch, even on the first check. The incident is checked once a minute.
 
 | Flag | Description |
 | --- | --- |
@@ -126,7 +126,7 @@ The first lines show the incident and its latest update. After that, each new up
 | `0` | The incident resolved, or had already resolved. |
 | `1` | A new update was posted and the incident is still active. Only with `--until-update`. |
 | `124` | `--max-wait` was reached and the incident is still active. |
-| `2` | The incident could not be read or was not found, or the input is not an incident URL. |
+| `2` | The incident was not found, the page is not a supported status page, or the input is not an incident URL. These are checked until the first successful check; after that, failures only print a line. |
 
 ### Watching from an agent
 

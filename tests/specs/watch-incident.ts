@@ -109,12 +109,12 @@ describe('watchIncident', () => {
 
 		const events: string[] = [];
 		for await (const event of watchIncident(`${page.url}/incidents/abc`, { interval })) {
-			events.push(event.type === 'error' ? event.error : event.type);
+			events.push(event.type === 'error' ? `${event.kind}: ${event.error}` : event.type);
 		}
 		expect(events).toStrictEqual([
-			`HTTP 500 from ${page.url}${incidentPath}`,
+			`request: HTTP 500 from ${page.url}${incidentPath}`,
 			'incident',
-			`HTTP 500 from ${page.url}${incidentPath}`,
+			`request: HTTP 500 from ${page.url}${incidentPath}`,
 			'update',
 		]);
 	});
@@ -130,6 +130,7 @@ describe('watchIncident', () => {
 		await watch.return();
 		expect(value).toStrictEqual({
 			type: 'error',
+			kind: 'request',
 			error: `Timed out reaching ${page.url}`,
 		});
 	});
