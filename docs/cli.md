@@ -40,7 +40,9 @@ A selector that matches nothing is an error, and the error lists the available c
 
 Without a selector, a service is degraded when its page reports any problem, any component is not operational, or an incident is active.
 
-With a selector, only the selected components count:
+Some catalog entries cover only part of the page without a selector. Cloudflare marks dozens of its data centers as not operational at almost any time, so `cloudflare` covers only the "Cloudflare Sites and Services" group. Check a data center or region with a selector, such as `cloudflare:sydney` or `cloudflare:europe`.
+
+With a selector, or for a catalog entry that covers part of its page, only the selected components count:
 
 - A selected component that is not operational, including one under maintenance.
 - An active incident linked to a selected component.

@@ -879,6 +879,9 @@
 			"cloudflarestatus.com",
 			"workers.dev",
 			"pages.dev"
+		],
+		"defaultScope": [
+			"Cloudflare Sites and Services"
 		]
 	},
 	"cloudinary": {
