@@ -26,4 +26,10 @@ export type Provider = {
 
 	/** Placeholder components that carry no status */
 	ignoreComponents?: string[];
+
+	/**
+	 * Exact component or group names that unscoped checks cover, for pages where the
+	 * other components are rarely all operational
+	 */
+	defaultScope?: string[];
 };

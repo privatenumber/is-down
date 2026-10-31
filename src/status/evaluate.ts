@@ -67,8 +67,8 @@ export const evaluatePage = (
 	const componentNames = new Map(
 		summary.components.map(component => [component.id, component.name]),
 	);
-	const { scope } = request;
-	const scoped = scopeComponents(summary.components, request, componentNames);
+	const scope = request.scope ?? request.provider?.defaultScope;
+	const scoped = scopeComponents(summary.components, request, scope, componentNames);
 	const scopedIds = new Set(scoped.map(component => component.id));
 
 	// Incidents not linked to any component are treated as affecting the whole service
@@ -98,6 +98,7 @@ export const evaluatePage = (
 	const degraded = (
 		worst !== 'operational'
 		|| incidents.some(incident => incident.impact !== 'none')
+		// The page indicator also counts components outside the scope
 		|| (!scope && summary.status.indicator !== 'none')
 	);
 
@@ -105,7 +106,7 @@ export const evaluatePage = (
 		id: request.provider?.id,
 		name: request.provider?.name ?? summary.page.name,
 		url: request.url,
-		scope,
+		scope: request.scope,
 		state: degraded ? 'degraded' : 'operational',
 		description: scope ? describeScope(worst, degraded) : summary.status.description,
 		components,

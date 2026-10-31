@@ -51,6 +51,72 @@ describe('getStatus', () => {
 		expect(whole.state).toBe('degraded');
 	});
 
+	test('unscoped checks cover only the provider default scope', async () => {
+		const outage = incident({
+			id: 'syd',
+			name: 'Network issues in Sydney',
+			components: ['syd'],
+		});
+		await using page = await createStatusPage({
+			[summaryPath]: summary({
+				indicator: 'major',
+				components: [
+					{
+						id: 'services',
+						name: 'Services',
+						group: true,
+					},
+					{
+						id: 'cdn',
+						name: 'CDN',
+						group_id: 'services',
+					},
+					{
+						id: 'regions',
+						name: 'Data centers',
+						group: true,
+					},
+					{
+						id: 'syd',
+						name: 'Sydney',
+						status: 'major_outage',
+						group_id: 'regions',
+					},
+				],
+				incidents: [outage],
+			}),
+			[incidentsPath]: { incidents: [outage] },
+		});
+		const provider: Provider = {
+			id: 'example',
+			name: 'Example CDN',
+			url: page.url,
+			platform: 'statuspage',
+			domains: [],
+			defaultScope: ['Services'],
+		};
+
+		const unscoped = await getStatus(provider);
+		expect(unscoped).toMatchObject({
+			state: 'operational',
+			description: 'Operational',
+			components: [{
+				name: 'CDN',
+				group: 'Services',
+				status: 'operational',
+			}],
+			incidents: [],
+		});
+		expect(unscoped.scope).toBeUndefined();
+
+		const scoped = await getStatus(provider, { components: ['sydney'] });
+		expect(scoped).toMatchObject({
+			state: 'degraded',
+			scope: ['sydney'],
+			incidents: [{ id: 'syd' }],
+		});
+	});
+
 	test('Object.prototype names are not component aliases', async () => {
 		await using page = await createStatusPage({
 			[summaryPath]: summary({

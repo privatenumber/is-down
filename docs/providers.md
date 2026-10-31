@@ -50,6 +50,10 @@ type Provider = {
 
     // Placeholder components that carry no status
     ignoreComponents?: string[]
+
+    // Exact component or group names that checks without a selector cover,
+    // for pages where the other components are rarely all operational
+    defaultScope?: string[]
 }
 ```
 
@@ -63,6 +67,8 @@ These rules are enforced by tests:
 - IDs and aliases are unique, and none is `defaults` or `list`.
 - Each domain belongs to one provider.
 - URLs use https.
+
+`pnpm test:live` also checks that every name in `components`, `ignoreComponents`, and `defaultScope` exists on the live page.
 
 IDs are part of the public interface. Renaming or removing an ID is a breaking change.
 

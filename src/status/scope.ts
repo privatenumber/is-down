@@ -11,17 +11,18 @@ const matchesSelector = (text: string, selector: string) => {
 	return lower.includes(selector);
 };
 
-/** Returns leaf components in the request's scope, excluding groups and ignored placeholders */
+/** Returns leaf components matching the selectors, excluding groups and ignored placeholders */
 export const scopeComponents = (
 	allComponents: ApiComponent[],
 	request: PageRequest,
+	selectors: string[] | undefined,
 	componentNames: Map<string, string>,
 ) => {
 	const ignored = new Set(request.provider?.ignoreComponents);
 	const components = allComponents.filter(
 		component => !component.group && !ignored.has(component.name),
 	);
-	if (!request.scope) {
+	if (!selectors) {
 		return components;
 	}
 
@@ -30,7 +31,7 @@ export const scopeComponents = (
 	);
 	const aliases = request.provider?.components ?? {};
 	const selected = new Set<ApiComponent>();
-	for (const rawSelector of request.scope) {
+	for (const rawSelector of selectors) {
 		const selector = rawSelector.toLowerCase();
 		const aliasTarget = Object.hasOwn(aliases, selector)
 			? aliases[selector]!.toLowerCase()
