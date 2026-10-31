@@ -1,5 +1,4 @@
 import { styleText } from 'node:util';
-import ansis, { link } from 'ansis';
 import type {
 	Component, Incident, IncidentUpdate, ServiceResult,
 } from '../status/types.ts';
@@ -12,10 +11,13 @@ export const style = (format: Style, text: string) => (
 	styleText(format, text, { stream: process.stdout })
 );
 
-// Hyperlinks only go to terminals, so CI logs and redirected output stay plain text.
-// Without color support, ansis would print "text (url)" instead, so plain text is used there too.
+// An OSC 8 hyperlink, which supporting terminals show as `text` that opens `url`.
+// Hyperlinks go only to terminals that get styled output, the same check `styleText` makes,
+// so CI logs, redirected output, and NO_COLOR stay plain text.
 export const linkTo = (url: string, text: string) => (
-	process.stdout.isTTY && ansis.isSupported() ? link(url, text) : text
+	process.stdout.isTTY && process.stdout.hasColors()
+		? `\u001B]8;;${url}\u0007${text}\u001B]8;;\u0007`
+		: text
 );
 
 export const stateSymbols: Record<ServiceResult['state'], {

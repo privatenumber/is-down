@@ -172,9 +172,6 @@ importers:
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
-      ansis:
-        specifier: ^4.4.0
-        version: 4.4.0
       clean-pkg-json:
         specifier: ^2.0.0
         version: 2.0.0
@@ -1078,10 +1075,6 @@ packages:
 
   ansis@4.3.0:
     resolution: {integrity: sha512-44mvgtPvohuU/70DdY5Oz2AIrLJ9k6/5x4KmoSvPwO+5Moijo0+N9D0fKbbYZQWP1hNm5CpOf+E01jhxG/r8xg==}
-    engines: {node: '>=14'}
-
-  ansis@4.4.0:
-    resolution: {integrity: sha512-9k3v7xcHwgdO/DruxGIg4HtjvlAZlcnsX/mzqUb1t3NkYnl9kK2UJ+Gq0io+vQf7iT//BD/HB/NBkUR1LWxoeA==}
     engines: {node: '>=14'}
 
   anynum@1.0.1:
@@ -3628,8 +3621,6 @@ snapshots:
   ansi-styles@5.2.0: {}
 
   ansis@4.3.0: {}
-
-  ansis@4.4.0: {}
 
   anynum@1.0.1: {}
 
