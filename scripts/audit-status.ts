@@ -6,7 +6,7 @@
  * - With --history: Wayback Machine captures of each page's summary, counting captures with
  *   components that were not operational, in total and within the provider's default scope.
  *
- * Prints Markdown tables. See notes/is-down/cloudflare-default-scope.md for a recorded run.
+ * Prints Markdown tables. See notes/is-down/default-scope.md for a recorded run.
  */
 import { setTimeout } from 'node:timers/promises';
 import { cli } from 'cleye';
