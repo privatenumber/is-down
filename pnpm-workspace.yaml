@@ -1,3 +1,9 @@
+# Link approved dependency skills here. Without an explicit directory, pnpm only links into
+# skill directories that already exist, and the install fails when none does.
+skills:
+  dirs:
+    - .agents/skills
+
 # Agent skills shipped by direct dev dependencies
 permissions:
   clean-pkg-json:

@@ -24,3 +24,6 @@ lerna-debug.log*
 
 # ESLint cache
 .eslintcache
+
+# Agent skills that pnpm links from dependencies
+/.agents/skills/
