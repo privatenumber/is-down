@@ -48,7 +48,8 @@
 		"prepack": "pnpm build && clean-pkg-json",
 		"test:live": "node tests/live.ts",
 		"import-providers": "node scripts/import-providers/index.ts",
-		"generate-providers": "node scripts/generate-providers.ts"
+		"generate-providers": "node scripts/generate-providers.ts",
+		"audit-status": "node scripts/audit-status.ts"
 	},
 	"engines": {
 		"node": ">=22.8"
