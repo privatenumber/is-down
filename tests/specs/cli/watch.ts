@@ -116,17 +116,45 @@ describe('watch', () => {
 		]));
 
 		const incidentUrl = `${page.url}/incidents/abc`;
-		const result = await run(['watch', incidentUrl, '--max-wait', '1s'], { env: fastPolling });
+		const result = await run(['watch', incidentUrl, '--max-wait', '2s'], { env: fastPolling });
 		expect(result).toStrictEqual({
 			exitCode: 124,
 			stdout: [
 				header(page.url),
 				'  investigating · We are investigating.',
-				`Still investigating after <1m. To keep watching, run: npx is-down watch ${incidentUrl} --max-wait 1s`,
+				`Still investigating after <1m. To keep watching, run this again in the background: npx is-down watch ${incidentUrl} --max-wait 2s`,
 				'',
 			].join('\n'),
 			stderr: '',
 		});
+	});
+
+	test('--max-wait exits 124 when no check has succeeded', async () => {
+		await using page = await createStatusPage({ [incidentPath]: 503 });
+
+		const incidentUrl = `${page.url}/incidents/abc`;
+		const { exitCode, stdout } = await run(['watch', incidentUrl, '--max-wait', '2s'], { env: fastPolling });
+		expect(exitCode).toBe(124);
+		expect(stdout).toContain(`! Could not check the incident: HTTP 503 from ${page.url}${incidentPath}\n`);
+		expect(stdout.trimEnd().split('\n').at(-1)).toBe(`Still unchecked after <1m. To keep watching, run this again in the background: npx is-down watch ${incidentUrl} --max-wait 2s`);
+	});
+
+	test('--max-wait 0 is invalid', async () => {
+		const result = await run(['watch', 'https://status.example.com/incidents/abc', '--max-wait', '0']);
+		expect(result.exitCode).toBe(2);
+		expect(result.stdout).toBe('');
+		expect(result.stderr).toContain('--max-wait must be longer than 0');
+	});
+
+	test('the rerun command quotes arguments the shell would split', async () => {
+		await using page = await createStatusPage(sequence([
+			incidentState([investigating]),
+			incidentState([investigating, identified]),
+		]));
+
+		const incidentUrl = `${page.url}/incidents/abc?from=a b`;
+		const { stdout } = await run(['watch', incidentUrl, '--until-update'], { env: fastPolling });
+		expect(stdout).toContain(`run this again in the background: npx is-down watch '${incidentUrl}' --until-update\n`);
 	});
 
 	test('a failed check is reported and watching continues', async () => {

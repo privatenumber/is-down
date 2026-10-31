@@ -38,8 +38,8 @@ const updatesAfter = (updates: ApiIncidentUpdate[], time: number) => (
  * as `error` events and the watch continues.
  * The iterator finishes after the check that finds the incident resolved.
  *
- * Throws only for an invalid or non-incident URL, and rejects with the signal's reason when
- * `options.signal` aborts.
+ * Throws at the call for an invalid or non-incident URL, or an `interval` or `timeout` that is not
+ * positive. Rejects with the signal's reason when `options.signal` aborts.
  */
 export const watchIncident = (
 	url: string,
@@ -49,8 +49,16 @@ export const watchIncident = (
 		signal,
 	}: WatchIncidentOptions = {},
 ): AsyncGenerator<IncidentEvent, void, undefined> => {
-	// Validated before the generator starts, so an invalid URL throws at the call
+	// Validated before the generator starts, so invalid input throws at the call
 	const { pageUrl, incidentId } = parseIncidentUrl(url);
+	for (const [name, value] of Object.entries({
+		interval,
+		timeout,
+	})) {
+		if (!(value > 0)) {
+			throw new RangeError(`${name} must be a positive number of milliseconds, received ${value}`);
+		}
+	}
 
 	/** Returns the incident, or why it could not be read */
 	const check = async (): Promise<ApiIncident | CheckFailure> => {

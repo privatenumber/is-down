@@ -122,9 +122,11 @@ describe('watchIncident', () => {
 	test('a check that times out is yielded as an error', async () => {
 		await using page = await createStatusPage({ [incidentPath]: 'hang' });
 
+		// A caller signal that never aborts, so the check's timeout is combined with it
 		const watch = watchIncident(`${page.url}/incidents/abc`, {
 			interval,
 			timeout: 50,
+			signal: new AbortController().signal,
 		});
 		const { value } = await watch.next();
 		await watch.return();
@@ -155,6 +157,19 @@ describe('watchIncident', () => {
 		controller.abort(reason);
 		await expect(next).rejects.toBe(reason);
 		expect(page.requests).toStrictEqual([incidentPath]);
+	});
+
+	test('aborting during a check rejects with the signal reason', async () => {
+		await using page = await createStatusPage({ [incidentPath]: 'hang' });
+
+		const controller = new AbortController();
+		const reason = new Error('Stop watching');
+		const watch = watchIncident(`${page.url}/incidents/abc`, { signal: controller.signal });
+
+		const first = watch.next();
+		await sleep(interval * 5);
+		controller.abort(reason);
+		await expect(first).rejects.toBe(reason);
 	});
 
 	test('an already aborted signal rejects before any check', async () => {
@@ -213,6 +228,27 @@ describe('watchIncident', () => {
 		}
 		expect(events.map(event => event.type)).toStrictEqual(['incident']);
 		expect(page.requests).toStrictEqual([incidentPath, '/api/v2/incidents.json']);
+	});
+
+	test('a postmortem ends the watch', async () => {
+		await using page = await createStatusPage(sequence([
+			incidentState([investigating]),
+			incidentState([investigating, ['postmortem', 'A postmortem is available.', 0]]),
+		]));
+
+		const statuses: string[] = [];
+		for await (const event of watchIncident(`${page.url}/incidents/abc`, { interval })) {
+			if (event.type !== 'error') {
+				statuses.push(event.incident.status);
+			}
+		}
+		expect(statuses).toStrictEqual(['investigating', 'postmortem']);
+	});
+
+	test('an interval that is not positive throws at the call', () => {
+		expect(() => watchIncident('https://status.example.com/incidents/abc', { interval: 0 })).toThrow(
+			'interval must be a positive number of milliseconds, received 0',
+		);
 	});
 
 	test('a URL that is not an incident throws at the call', () => {

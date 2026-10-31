@@ -136,5 +136,5 @@ To stop on errors that a retry won't fix, break out of the loop on `not-found` o
 
 To stop watching, break out of the loop or abort `signal`. When `signal` aborts, the iterator rejects with the signal's reason. To stop after a limit, pass `AbortSignal.timeout(ms)` and handle its `TimeoutError`.
 
-`watchIncident` throws at the call when `url` is not a valid URL or not an incident URL.
+`watchIncident` throws at the call when `url` is not a valid URL or not an incident URL, or when `interval` or `timeout` is not a positive number.
 

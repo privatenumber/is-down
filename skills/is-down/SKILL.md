@@ -29,9 +29,11 @@ When diagnosing a failure, scope the check to the component that failed, such as
 
 Each active incident in the output ends with a `Watch: npx is-down watch <incident-url>` line. Run it in the background to follow the incident instead of polling:
 
-- If your harness reports a background command only when it exits, add `--until-update`. Exit `1` means a new update was posted. Start the same command again in the background before acting on the update, so no later update is missed.
+- If your harness reports a background command only when it exits, add `--until-update`. Exit `1` means new updates were posted, and all of them are printed. Start the same command again in the background before acting on them. The new run first prints the latest update, which you may have already seen.
 - If your harness reports each output line as it arrives, run it without `--until-update`. Each line is one event.
-- Exit `0` means the incident resolved: retry the action that failed. Set `--max-wait` below your harness's time limit for background commands; exit `124` means nothing changed in that time.
+- Exit `0` means the incident resolved: retry the action that failed.
+- Set `--max-wait` below your harness's time limit for background commands. Exit `124` means the incident is still active; run the same command again to keep watching.
+- Exit `2` means the incident was not found or the page is not a supported status page. Check the URL instead of rerunning. Failed requests, such as HTTP 5xx, print a line and the watch continues.
 
 ## Node.js API
 

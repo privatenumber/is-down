@@ -118,8 +118,8 @@ The first lines show the incident and its latest update. After that, each new up
 
 | Flag | Description |
 | --- | --- |
-| `--until-update` | Exit at the next update instead of waiting for the incident to resolve. The last line is the command to run again to keep watching. |
-| `--max-wait <duration>` | Stop after this long, such as `10m` or `1h`, and exit `124`. |
+| `--until-update` | Exit after the next check that finds new updates, instead of waiting for the incident to resolve. Every update from that check is printed, and the last line is the command to run again to keep watching. |
+| `--max-wait <duration>` | Stop after this long, such as `10m` or `1h`, and exit `124`. Must be longer than `0`. |
 
 | Exit code | Meaning |
 | --- | --- |
@@ -130,7 +130,7 @@ The first lines show the incident and its latest update. After that, each new up
 
 ### Watching from an agent
 
-Some agent harnesses only report a background command when it exits. Run `watch` with `--until-update` there, so each update ends the command. Start the same command again in the background before acting on the update. The new watch prints the latest update first, so an update posted between the two runs still shows.
+Some agent harnesses only report a background command when it exits. Run `watch` with `--until-update` there, so each update ends the command. Start the same command again in the background before acting on the updates. The new watch prints the latest update first. So if one update is posted between the two runs, it still shows. If several are, only the newest shows, and a rerun can show an update the previous run already printed.
 
 Harnesses that report each output line while a command runs can watch without `--until-update`. Set `--max-wait` below the harness's time limit for background commands.
 
