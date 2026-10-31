@@ -1,12 +1,16 @@
 import { styleText } from 'node:util';
 import ansis, { link } from 'ansis';
-import type { Component, Incident, ServiceResult } from '../status/types.ts';
+import type {
+	Component, Incident, IncidentUpdate, ServiceResult,
+} from '../status/types.ts';
 import { type ComponentStatus, statusLabels, worstStatus } from '../status/component-status.ts';
 import { formatDuration } from './duration.ts';
 
 type Style = Parameters<typeof styleText>[0];
 
-const style = (format: Style, text: string) => styleText(format, text, { stream: process.stdout });
+export const style = (format: Style, text: string) => (
+	styleText(format, text, { stream: process.stdout })
+);
 
 // Hyperlinks only go to terminals, so CI logs and redirected output stay plain text.
 // Without color support, ansis would print "text (url)" instead, so plain text is used there too.
@@ -92,6 +96,16 @@ const formatIncident = (incident: Incident, now: number) => {
 		: `  ${incident.url}`));
 	return lines.map(line => `${indent}${line}`);
 };
+
+/** The first line of `is-down watch` */
+export const formatWatchedIncident = (incident: Incident, now = Date.now()) => (
+	`${style('yellow', '●')} ${style('bold', incident.name)}${impactTag(incident)} · started ${formatDuration(now - Date.parse(incident.startedAt))} ago · ${incident.url}`
+);
+
+/** One update as one line, so tools that treat each output line as an event receive it whole */
+export const formatUpdate = (update: IncidentUpdate) => (
+	`  ${style('bold', update.status)} · ${update.body.replaceAll(/\s+/g, ' ').trim()}`
+);
 
 export const formatResults = (results: ServiceResult[], now = Date.now()) => {
 	const labels = results.map(label);

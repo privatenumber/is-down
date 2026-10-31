@@ -46,8 +46,25 @@ export type ApiSummary = {
 	incidents?: ApiIncident[];
 };
 
+/** Incident statuses after which no more updates are expected */
+export const resolvedStatuses = new Set(['resolved', 'postmortem']);
+
 /** An expected failure of a status page, reported as a result instead of thrown */
 export class PageError extends Error {}
+
+/**
+ * Describes an expected failure of a request to `pageUrl`: a `PageError` or a timeout.
+ * Rethrows anything else, such as an abort for another reason.
+ */
+export const describeFailure = (error: unknown, pageUrl: string) => {
+	if (error instanceof PageError) {
+		return error.message;
+	}
+	if (error instanceof DOMException && error.name === 'TimeoutError') {
+		return `Timed out reaching ${pageUrl}`;
+	}
+	throw error;
+};
 
 type FetchCause = {
 	code?: string;
@@ -125,4 +142,22 @@ export const fetchIncident = async (pageUrl: string, id: string, signal: AbortSi
 	}
 	const { incident } = await readJson(response, url, signal) as { incident?: ApiIncident };
 	return incident;
+};
+
+// incident.io incident IDs are ULIDs: 26 characters of Crockford base32
+const isIncidentIoId = (id: string) => /^[0-9A-HJKMNP-TV-Z]{26}$/.test(id);
+
+/**
+ * Looks up one incident on a Statuspage or incident.io page, in one request when the ID shows the
+ * platform. incident.io pages have no single-incident endpoint, and their 404 is a large HTML
+ * page, so incident.io IDs are found in the incident list. Other IDs use the Statuspage endpoint
+ * and fall back to the list when it returns 404.
+ */
+export const fetchIncidentById = async (pageUrl: string, id: string, signal: AbortSignal) => {
+	const incident = isIncidentIoId(id) ? undefined : await fetchIncident(pageUrl, id, signal);
+	if (incident) {
+		return incident;
+	}
+	const incidents = await fetchIncidents(pageUrl, signal);
+	return incidents.find(item => item.id === id);
 };

@@ -141,6 +141,40 @@ describe('watchIncident', () => {
 		expect(page.requests).toStrictEqual([incidentPath]);
 	});
 
+	test('incident.io IDs are read from the incident list', async () => {
+		const id = '01M64BZ539EBV61Y908QHE84C4';
+		const { incident } = incidentState([investigating, resolved]);
+		await using page = await createStatusPage({
+			'/api/v2/incidents.json': {
+				incidents: [{
+					...incident,
+					id,
+				}],
+			},
+		});
+
+		const events: IncidentEvent[] = [];
+		for await (const event of watchIncident(`${page.url}/incidents/${id}`, { interval })) {
+			events.push(event);
+		}
+		expect(events.map(event => event.type)).toStrictEqual(['incident']);
+		// incident.io pages have no single-incident endpoint, so it is never requested
+		expect(page.requests).toStrictEqual(['/api/v2/incidents.json']);
+	});
+
+	test('other IDs fall back to the incident list when the incident endpoint returns 404', async () => {
+		await using page = await createStatusPage({
+			'/api/v2/incidents.json': { incidents: [incidentState([investigating, resolved]).incident] },
+		});
+
+		const events: IncidentEvent[] = [];
+		for await (const event of watchIncident(`${page.url}/incidents/abc`, { interval })) {
+			events.push(event);
+		}
+		expect(events.map(event => event.type)).toStrictEqual(['incident']);
+		expect(page.requests).toStrictEqual([incidentPath, '/api/v2/incidents.json']);
+	});
+
 	test('a URL that is not an incident throws at the call', () => {
 		expect(() => watchIncident('https://status.example.com')).toThrow('Not an incident URL: https://status.example.com');
 	});

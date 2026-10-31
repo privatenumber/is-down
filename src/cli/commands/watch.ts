@@ -1,8 +1,10 @@
 import { styleText } from 'node:util';
 import { cli } from 'cleye';
-import type { Incident, IncidentUpdate } from '../../status/types.ts';
-import { watchIncident, resolvedStatuses } from '../../status/watch-incident.ts';
+import type { Incident } from '../../status/types.ts';
+import { watchIncident } from '../../status/watch-incident.ts';
+import { resolvedStatuses } from '../../status/statuspage.ts';
 import { parseDuration, formatDuration } from '../duration.ts';
+import { style, formatUpdate, formatWatchedIncident } from '../format.ts';
 import { resolveTargets, TargetError } from '../resolve.ts';
 
 const argv = cli({
@@ -44,18 +46,9 @@ if (!page || !incidentId) {
 	]);
 }
 
-const style = (format: Parameters<typeof styleText>[0], text: string) => (
-	styleText(format, text, { stream: process.stdout })
-);
-
-// Each event is one line, so tools that treat every output line as an event receive it whole
 const print = (line: string) => {
 	process.stdout.write(`${line}\n`);
 };
-
-const formatUpdate = (update: IncidentUpdate) => (
-	`  ${style('bold', update.status)} · ${update.body.replaceAll(/\s+/g, ' ').trim()}`
-);
 
 // Repeats this exact invocation, so a rerun keeps the same flags
 const rerunCommand = `npx is-down ${process.argv.slice(2).join(' ')}`;
@@ -84,8 +77,7 @@ const watch = async () => {
 
 			incident = event.incident;
 			if (event.type === 'incident') {
-				const impact = incident.impact === 'none' ? '' : ` [${incident.impact}]`;
-				print(`${style('yellow', '●')} ${style('bold', incident.name)}${impact} · started ${formatDuration(Date.now() - Date.parse(incident.startedAt))} ago · ${incident.url}`);
+				print(formatWatchedIncident(incident));
 				if (incident.latestUpdate) {
 					print(formatUpdate(incident.latestUpdate));
 				}

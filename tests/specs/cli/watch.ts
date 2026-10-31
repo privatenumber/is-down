@@ -106,16 +106,6 @@ describe('watch', () => {
 		expect(stdout).toContain('✓ Resolved');
 	});
 
-	test('pages without a single-incident endpoint use the incident list', async () => {
-		await using page = await createStatusPage({
-			'/api/v2/incidents.json': { incidents: [incidentState([investigating, resolved]).incident] },
-		});
-
-		const { exitCode, stdout } = await run(['watch', `${page.url}/incidents/abc`], { env: fastPolling });
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('✓ Resolved');
-	});
-
 	test('a missing incident exits 2', async () => {
 		await using page = await createStatusPage({
 			'/api/v2/incidents.json': { incidents: [] },

@@ -1,6 +1,6 @@
 import type { Provider } from '../providers/types.ts';
 import type { GetStatusOptions, PageRequest, ServiceResult } from './types.ts';
-import { PageError } from './statuspage.ts';
+import { describeFailure } from './statuspage.ts';
 import { fetchPageData } from './fetch-page.ts';
 import { evaluatePage } from './evaluate.ts';
 
@@ -48,14 +48,7 @@ export const getStatus = async (
 		const data = await fetchPageData(request, since, signal);
 		return evaluatePage(request, data, since);
 	} catch (error) {
-		if (error instanceof PageError) {
-			return errorResult(request, error.message);
-		}
-
 		// Timeouts are page failures. Other aborts propagate with their own reason.
-		if (error instanceof DOMException && error.name === 'TimeoutError') {
-			return errorResult(request, `Timed out reaching ${request.url}`);
-		}
-		throw error;
+		return errorResult(request, describeFailure(error, request.url));
 	}
 };

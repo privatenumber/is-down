@@ -6,15 +6,12 @@ import type { ApiIncident, ApiIncidentUpdate } from './statuspage.ts';
 import type { PageData } from './fetch-page.ts';
 import { scopeComponents } from './scope.ts';
 
-const getLatestUpdate = (updates: ApiIncidentUpdate[] = []) => {
-	let latest: ApiIncidentUpdate | undefined;
-	for (const update of updates) {
-		if (!latest || update.created_at > latest.created_at) {
-			latest = update;
-		}
-	}
-	return latest;
-};
+/** The incident's updates, oldest first */
+export const sortUpdates = (incident: ApiIncident) => (
+	(incident.incident_updates ?? []).slice().sort(
+		(a, b) => (a.created_at < b.created_at ? -1 : (a.created_at > b.created_at ? 1 : 0)),
+	)
+);
 
 export const toIncidentUpdate = (
 	incident: ApiIncident,
@@ -30,7 +27,7 @@ export const toIncident = (
 	pageUrl: string,
 	componentNames: Map<string, string>,
 ): Incident => {
-	const latestUpdate = getLatestUpdate(incident.incident_updates);
+	const latestUpdate = sortUpdates(incident).at(-1);
 	return {
 		id: incident.id,
 		name: incident.name,

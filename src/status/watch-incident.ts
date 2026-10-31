@@ -1,14 +1,13 @@
-import { setTimeout as sleep } from 'node:timers/promises';
+import { poll } from '../utils/poll.ts';
 import type { IncidentEvent, WatchIncidentOptions } from './types.ts';
 import {
 	type ApiIncident,
-	PageError,
-	fetchIncident,
-	fetchIncidents,
+	type ApiIncidentUpdate,
+	describeFailure,
+	fetchIncidentById,
+	resolvedStatuses,
 } from './statuspage.ts';
-import { toIncident, toIncidentUpdate } from './evaluate.ts';
-
-export const resolvedStatuses = new Set(['resolved', 'postmortem']);
+import { sortUpdates, toIncident, toIncidentUpdate } from './evaluate.ts';
 
 const parseIncidentUrl = (url: string) => {
 	const parsed = new URL(url);
@@ -22,8 +21,8 @@ const parseIncidentUrl = (url: string) => {
 	};
 };
 
-const sortedUpdates = (incident: ApiIncident) => (incident.incident_updates ?? []).slice().sort(
-	(a, b) => (a.created_at < b.created_at ? -1 : (a.created_at > b.created_at ? 1 : 0)),
+const updatesAfter = (updates: ApiIncidentUpdate[], createdAt: string) => (
+	updates.filter(update => update.created_at > createdAt)
 );
 
 /**
@@ -48,103 +47,63 @@ export const watchIncident = (
 	// Validated before the generator starts, so an invalid URL throws at the call
 	const { pageUrl, incidentId } = parseIncidentUrl(url);
 
-	// incident.io pages have no single-incident endpoint, so after the first 404 the list is used
-	let useIncidentList = false;
-
-	const fetchWatchedIncident = async (requestSignal: AbortSignal) => {
-		if (!useIncidentList) {
-			const incident = await fetchIncident(pageUrl, incidentId, requestSignal);
-			if (incident) {
-				return incident;
-			}
-			useIncidentList = true;
-		}
-
-		const incidents = await fetchIncidents(pageUrl, requestSignal);
-		const incident = incidents.find(item => item.id === incidentId);
-		if (!incident) {
-			throw new PageError(`Incident ${incidentId} not found on ${pageUrl}`);
-		}
-		return incident;
-	};
-
 	/** Returns the incident, or why it could not be read */
 	const check = async (): Promise<ApiIncident | string> => {
-		const timeoutSignal = AbortSignal.timeout(timeout);
-		const requestSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+		const checkSignal = signal
+			? AbortSignal.any([signal, AbortSignal.timeout(timeout)])
+			: AbortSignal.timeout(timeout);
 		try {
-			return await fetchWatchedIncident(requestSignal);
+			const incident = await fetchIncidentById(pageUrl, incidentId, checkSignal);
+			return incident ?? `Incident ${incidentId} not found on ${pageUrl}`;
 		} catch (error) {
 			// The caller's abort ends the watch. Only failures of this check become events.
 			signal?.throwIfAborted();
-			if (error instanceof PageError) {
-				return error.message;
-			}
-			if (timeoutSignal.aborted) {
-				return `Timed out reaching ${pageUrl}`;
-			}
-			throw error;
+			return describeFailure(error, pageUrl);
 		}
 	};
-
-	const wait = async () => {
-		try {
-			await sleep(interval, undefined, { signal });
-		} catch (error) {
-			// timers/promises rejects with its own AbortError, so surface the caller's reason
-			signal?.throwIfAborted();
-			throw error;
-		}
-	};
-
-	const convert = (incident: ApiIncident) => toIncident(
-		incident,
-		pageUrl,
-		new Map(incident.components?.map(component => [component.id, component.name ?? component.id])),
-	);
 
 	return (async function* watch() {
-		signal?.throwIfAborted();
+		// Undefined until the first successful check
+		let seenUntil: string | undefined;
 
-		let first = await check();
-		while (typeof first === 'string') {
-			yield {
-				type: 'error',
-				error: first,
-			};
-			await wait();
-			first = await check();
-		}
-
-		yield {
-			type: 'incident',
-			incident: convert(first),
-		};
-
-		let lastSeen = sortedUpdates(first).at(-1)?.created_at ?? '';
-		let latest = first;
-		while (!resolvedStatuses.has(latest.status)) {
-			await wait();
-			const next = await check();
-			if (typeof next === 'string') {
+		const checks = poll(check, {
+			interval,
+			signal,
+		});
+		for await (const result of checks) {
+			if (typeof result === 'string') {
 				yield {
 					type: 'error',
-					error: next,
+					error: result,
 				};
 				continue;
 			}
 
-			const incident = convert(next);
-			const seenUntil = lastSeen;
-			for (const update of sortedUpdates(next).filter(item => item.created_at > seenUntil)) {
-				lastSeen = update.created_at;
+			// Incidents carry their components' names, so no summary is needed
+			const componentNames = new Map(
+				result.components?.map(component => [component.id, component.name ?? component.id]),
+			);
+			const incident = toIncident(result, pageUrl, componentNames);
+			const updates = sortUpdates(result);
+			if (seenUntil === undefined) {
 				yield {
-					type: 'update',
+					type: 'incident',
 					incident,
-					update: toIncidentUpdate(next, update),
 				};
+			} else {
+				for (const update of updatesAfter(updates, seenUntil)) {
+					yield {
+						type: 'update',
+						incident,
+						update: toIncidentUpdate(result, update),
+					};
+				}
 			}
-			latest = next;
+
+			seenUntil = updates.at(-1)?.created_at ?? '';
+			if (resolvedStatuses.has(result.status)) {
+				return;
+			}
 		}
 	})();
 };
