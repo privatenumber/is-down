@@ -16,50 +16,82 @@ $ npx is-down npm:install github:git vercel
 ✓ Vercel
 ```
 
-`is-down` reads the [Statuspage](https://www.atlassian.com/software/statuspage) API that npm, GitHub, Vercel, Cloudflare, OpenAI, and many others publish, and exits nonzero when something you depend on is degraded. It ships an [agent skill](#agent-skill) so coding agents reach for it on their own.
+`is-down` reads the [Statuspage](https://www.atlassian.com/software/statuspage) API that npm, GitHub, Vercel, Cloudflare, OpenAI, and many others publish, and exits nonzero when something you depend on is degraded. It ships an [agent skill](#give-it-to-your-agent) so coding agents reach for it on their own.
+
+## Install
+
+```sh
+npm install -g is-down
+```
+
+A global install runs without contacting the npm registry, so it still works when npm is the service that's down. It also starts faster than `npx is-down`, which checks the registry on every run. Use `npx is-down` to try it without installing.
+
+Update with `npm install -g is-down@latest`.
+
+## Give it to your agent
+
+The package includes an [agent skill](skills/is-down/SKILL.md) that tells coding agents to check `is-down` when an external service fails, such as after a failed install, push, deploy, or API call.
+
+Install it into the skills directory your agent reads:
+
+```sh
+is-down skills --install ~/.agents/skills   # Codex, OpenCode, and other agents that read ~/.agents/skills
+is-down skills --install ~/.claude/skills   # Claude Code
+is-down skills --install .agents/skills     # Only the current project
+```
+
+Or paste this into your agent:
+
+```
+Install is-down globally with `npm install -g is-down`. Then run `is-down skills --install <directory>`, where <directory> is the skills directory you load skills from.
+```
+
+After you update `is-down`, run the same `skills --install` command again so the skill matches the CLI. To read the skill without installing it, run `is-down skills`.
+
+In projects that depend on `is-down`, pnpm can link the skill automatically after approval. See [pnpm agent skills](https://pnpm.io/agent-skills).
 
 ## Usage
 
 Check the default services (npm, GitHub, Node.js, Vercel, Cloudflare, Netlify):
 
 ```sh
-npx is-down
+is-down
 ```
 
 Add to the defaults:
 
 ```sh
-npx is-down defaults discord
+is-down defaults discord
 ```
 
 Check only the parts you use. A Copilot outage won't fail a check scoped to Git and Actions:
 
 ```sh
-npx is-down npm:install github:git github:actions
+is-down npm:install github:git github:actions
 ```
 
 Paste the URL from an error message. Known service domains map to their status page:
 
 ```sh
-npx is-down https://registry.npmjs.org/react
+is-down https://registry.npmjs.org/react
 ```
 
 Check any Statuspage-compatible page, optionally scoped to a component:
 
 ```sh
-npx is-down "https://status.example.com#builds"
+is-down "https://status.example.com#builds"
 ```
 
 Follow an incident until it resolves. Each update prints as it is posted, and the command exits when the incident resolves:
 
 ```sh
-npx is-down watch https://status.npmjs.org/incidents/abc123 && npm publish
+is-down watch https://status.npmjs.org/incidents/abc123 && npm publish
 ```
 
 See what happened recently. Incidents resolved within the window are listed but don't affect the exit code:
 
 ```sh
-npx is-down github --since 6h
+is-down github --since 6h
 ```
 
 Run it before a CI step to tell an upstream outage apart from a broken build:
@@ -77,26 +109,10 @@ Run it before a CI step to tell an upstream outage apart from a broken build:
 Search the catalog of about 760 services:
 
 ```sh
-npx is-down list google
+is-down list google
 ```
 
 See [CLI docs](docs/cli.md) for all options, and [Node.js API](docs/node.md) to use it from code.
-
-## Agent skill
-
-The package includes an [agent skill](skills/is-down/SKILL.md) that tells coding agents to check `is-down` when an external service fails, such as after a failed install, push, deploy, or API call.
-
-Install it into the skills directory your agent reads:
-
-```sh
-npx is-down skills --install ~/.agents/skills   # Codex, OpenCode, and other agents that read ~/.agents/skills
-npx is-down skills --install ~/.claude/skills   # Claude Code
-npx is-down skills --install .agents/skills     # Only the current project
-```
-
-Run it again to update the skill. To read the skill without installing it, run `npx is-down skills`.
-
-In projects that depend on `is-down`, pnpm can link the skill automatically after approval. See [pnpm agent skills](https://pnpm.io/agent-skills).
 
 ## Node.js API
 

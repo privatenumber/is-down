@@ -10,14 +10,16 @@ Reads Statuspage-compatible status pages and reports components that are not ope
 ## CLI
 
 ```sh
-npx is-down                                   # npm, GitHub, Node.js, Vercel, Cloudflare, Netlify
-npx is-down defaults discord                  # Defaults plus Discord
-npx is-down npm:install github:git            # Only these components
-npx is-down https://registry.npmjs.org/react  # URL from an error message
-npx is-down "https://status.example.com#api"  # Any Statuspage-compatible page
-npx is-down github --since 6h --json          # Include incidents resolved in the last 6h
-npx is-down list google                       # Search the catalog
+is-down                                   # npm, GitHub, Node.js, Vercel, Cloudflare, Netlify
+is-down defaults discord                  # Defaults plus Discord
+is-down npm:install github:git            # Only these components
+is-down https://registry.npmjs.org/react  # URL from an error message
+is-down "https://status.example.com#api"  # Any Statuspage-compatible page
+is-down github --since 6h --json          # Include incidents resolved in the last 6h
+is-down list google                       # Search the catalog
 ```
+
+If `is-down` is not on `PATH`, run `npx is-down` instead.
 
 Catalog entries marked "not checkable" in `is-down list` have no readable status API; checking one exits `2` with the status page link to open.
 
