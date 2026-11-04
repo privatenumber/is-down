@@ -13,6 +13,7 @@ Each upstream folder owns that tool's behavior, implementation, configuration, a
 | [statuspage/](./statuspage/README.md) | Atlassian Statuspage public API: endpoints, incident IDs, update timestamps, caching |
 | [incident-io/](./incident-io/README.md) | incident.io's Statuspage-compatible public API and how it differs from Statuspage |
 | [cloudflare/](./cloudflare/README.md) | Cloudflare's status page: data-center components and incident patterns |
+| [datadog/](./datadog/README.md) | Datadog Status Pages: no Statuspage-compatible API, and why Datadog is `other` |
 | [ansis/](./ansis/README.md) | How the `ansis` color library detects color support |
 | [node/](./node/README.md) | Node.js `util.styleText` color decisions |
 | [claude-code/](./claude-code/README.md) | How Claude Code delivers output from long-running commands |

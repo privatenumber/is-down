@@ -581,9 +581,11 @@
 	},
 	"bolt": {
 		"name": "Bolt",
-		"url": "https://status.bolt.com",
+		"url": "https://status.boltapp.com",
 		"platform": "statuspage",
-		"domains": []
+		"domains": [
+			"boltapp.com"
+		]
 	},
 	"booksy": {
 		"name": "Booksy",
@@ -1125,7 +1127,7 @@
 	"datadog": {
 		"name": "Datadog",
 		"url": "https://status.datadoghq.com",
-		"platform": "statuspage",
+		"platform": "other",
 		"domains": [
 			"datadoghq.com"
 		]
@@ -1133,7 +1135,7 @@
 	"datadogeu": {
 		"name": "Datadog EU",
 		"url": "https://status.datadoghq.eu",
-		"platform": "statuspage",
+		"platform": "other",
 		"domains": [
 			"datadog.eu",
 			"datadoghq.eu"

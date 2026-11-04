@@ -760,9 +760,11 @@ export const bluefin: Provider = {
 export const bolt: Provider = {
 	id: 'bolt',
 	name: 'Bolt',
-	url: 'https://status.bolt.com',
+	url: 'https://status.boltapp.com',
 	platform: 'statuspage',
-	domains: [],
+	domains: [
+		'boltapp.com',
+	],
 };
 
 export const booksy: Provider = {
@@ -1472,7 +1474,7 @@ export const datadog: Provider = {
 	id: 'datadog',
 	name: 'Datadog',
 	url: 'https://status.datadoghq.com',
-	platform: 'statuspage',
+	platform: 'other',
 	domains: [
 		'datadoghq.com',
 	],
@@ -1482,7 +1484,7 @@ export const datadogeu: Provider = {
 	id: 'datadogeu',
 	name: 'Datadog EU',
 	url: 'https://status.datadoghq.eu',
-	platform: 'statuspage',
+	platform: 'other',
 	domains: [
 		'datadog.eu',
 		'datadoghq.eu',
