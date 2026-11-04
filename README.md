@@ -24,29 +24,18 @@ $ npx is-down npm:install github:git vercel
 npm install -g is-down
 ```
 
-A global install runs without contacting the npm registry, so it still works when npm is the service that's down. It also starts faster than `npx is-down`, which checks the registry on every run. Use `npx is-down` to try it without installing.
-
-Update with `npm install -g is-down@latest`.
-
-## Give it to your agent
+### Give it to your agent
 
 The package includes an [agent skill](skills/is-down/SKILL.md) that tells coding agents to check `is-down` when an external service fails, such as after a failed install, push, deploy, or API call.
 
 Install it into the skills directory your agent reads:
 
 ```sh
+is-down skills                              # View the skill
 is-down skills --install ~/.agents/skills   # Codex, OpenCode, and other agents that read ~/.agents/skills
 is-down skills --install ~/.claude/skills   # Claude Code
 is-down skills --install .agents/skills     # Only the current project
 ```
-
-Or paste this into your agent:
-
-```
-Install is-down globally with `npm install -g is-down`. Then run `is-down skills --install <directory>`, where <directory> is the skills directory you load skills from.
-```
-
-After you update `is-down`, run the same `skills --install` command again so the skill matches the CLI. To read the skill without installing it, run `is-down skills`.
 
 In projects that depend on `is-down`, pnpm can link the skill automatically after approval. See [pnpm agent skills](https://pnpm.io/agent-skills).
 
