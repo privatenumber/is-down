@@ -6,7 +6,7 @@
 
 The CLI writes results to stdout and the progress view and errors to stderr. `styleText` decides color per stream on every supported Node.js version ([node/style-text.md](../node/style-text.md)), so `is-down | jq` keeps a colored progress view on the terminal while the piped results stay plain.
 
-ansis decides once, from stdout only, and enables color in CI and when `COLORTERM` is set even for pipes ([ansis/color-detection.md](../ansis/color-detection.md)). Styling everything with ansis would color stderr by stdout's state and, until [webdiscus/ansis#54](https://github.com/webdiscus/ansis/issues/54) is resolved, put escape codes into piped output for iTerm2 and VS Code users.
+ansis decides once, from stdout only, and enables color in CI and when `COLORTERM` is set even for pipes ([ansis/color-detection.md](../ansis/color-detection.md)). Styling everything with ansis would color stderr by stdout's state. Before v4.5.0, which fixed [webdiscus/ansis#54](https://github.com/webdiscus/ansis/issues/54), it also put escape codes into piped output for iTerm2 and VS Code users.
 
 ## Why ansis for hyperlinks
 
@@ -20,5 +20,5 @@ An inline OSC 8 helper was tried and rejected for readability. Its output was by
 
 ## When to revisit
 
-- Revisit styling everything with ansis if the CLI needs features `styleText` lacks (themes, nested templates, truecolor with fallbacks), or if ansis gains per-stream detection and #54 is fixed.
+- Revisit styling everything with ansis if the CLI needs features `styleText` lacks (themes, nested templates, truecolor with fallbacks), or if ansis gains per-stream detection. #54 is fixed in v4.5.0, so per-stream detection is the remaining blocker.
 - [`terminal-link`](https://www.npmjs.com/package/terminal-link) detects hyperlink support itself (through `supports-hyperlinks`) instead of inferring it from color support, but bundles three more packages and prints `text (url)` by default. Revisit if users report hyperlinks rendering as raw text in terminals without OSC 8 support.
