@@ -45,7 +45,7 @@ Without `COLORTERM`, the same command prints `undefined 0 "x"`. Reported upstrea
 [v4.5.0](https://github.com/webdiscus/ansis/blob/v4.5.0/CHANGELOG.md) fixed #54: `COLORTERM` now only picks the level once the output is known to support color. That check, in `getLevel` in [`src/color-support.js`](https://github.com/webdiscus/ansis/blob/v4.5.0/src/color-support.js), is:
 
 ```js
-outputSupported = isTTY() || isCI() || detectPM2() || detectNextJs();
+outputSupported = isTTY() || isCI() || detectPM2() || detectNextJs()
 ```
 
 So `CI` still enables color for any output, including a pipe inside a CI job. GitHub Actions still gets truecolor. The changelog says this is intended: "Color output in supported non-TTY environments such as CI, PM2, and Next.js edge still works."
