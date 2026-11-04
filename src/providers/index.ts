@@ -1149,6 +1149,9 @@ export const cloudflare: Provider = {
 		'workers.dev',
 		'pages.dev',
 	],
+	defaultScope: [
+		'Cloudflare Sites and Services',
+	],
 };
 
 export const cloudinary: Provider = {

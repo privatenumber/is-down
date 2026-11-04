@@ -12,12 +12,13 @@ Each upstream folder owns that tool's behavior, implementation, configuration, a
 | --- | --- |
 | [statuspage/](./statuspage/README.md) | Atlassian Statuspage public API: endpoints, incident IDs, update timestamps, caching |
 | [incident-io/](./incident-io/README.md) | incident.io's Statuspage-compatible public API and how it differs from Statuspage |
+| [cloudflare/](./cloudflare/README.md) | Cloudflare's status page: data-center components and incident patterns |
 | [ansis/](./ansis/README.md) | How the `ansis` color library detects color support |
 | [node/](./node/README.md) | Node.js `util.styleText` color decisions |
 | [claude-code/](./claude-code/README.md) | How Claude Code delivers output from long-running commands |
 | [opencode/](./opencode/README.md) | How OpenCode delivers output from long-running commands |
 | [codex/](./codex/README.md) | How Codex delivers output from long-running commands |
-| [is-down/](./is-down/README.md) | Project decisions: incident lookup, the `watch` command design, terminal styling |
+| [is-down/](./is-down/README.md) | Project decisions: incident lookup, the `watch` command design, terminal styling, default scopes |
 
 ## Evidence
 

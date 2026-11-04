@@ -21,6 +21,7 @@ describe('live catalog', () => {
 			const configuredNames = [
 				...Object.values(provider.components ?? {}),
 				...(provider.ignoreComponents ?? []),
+				...(provider.defaultScope ?? []),
 			];
 			for (const name of configuredNames) {
 				expect(componentNames.has(name)).toBe(true);
