@@ -33,4 +33,10 @@ export type Provider = {
 	 * the whole page.
 	 */
 	defaultScope?: string[];
+
+	/**
+	 * Why the entry will be removed in the next major version, such as the service shutting down.
+	 * Checks return this as an error without a request.
+	 */
+	deprecated?: string;
 };

@@ -51,7 +51,9 @@ const providerExports = Object.entries(source).map(([id, data]) => {
 		id,
 		...data,
 	};
-	return `export const ${id}: Provider = ${serialize(provider, '')};\n`;
+	// Editors strike through deprecated imports
+	const jsDocument = provider.deprecated ? `/** @deprecated ${provider.deprecated} */\n` : '';
+	return `${jsDocument}export const ${id}: Provider = ${serialize(provider, '')};\n`;
 });
 
 const output = [

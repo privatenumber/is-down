@@ -32,7 +32,7 @@ To check several pages, call `getStatus` for each one with `Promise.all`.
 | `since` | `number` | `3600000` (1 hour) | Include incidents resolved within this many milliseconds. `0` disables it and skips a request. |
 | `signal` | `AbortSignal` | `AbortSignal.timeout(10_000)` | Aborts the check. A passed signal replaces the default timeout. |
 
-Network failures, timeouts, unsupported pages, unmatched selectors, and providers with `platform: 'other'` do not throw. They are returned as results with `state: 'error'`. A timeout is a `signal` that aborts with a `TimeoutError`, such as `AbortSignal.timeout(10_000)`.
+Network failures, timeouts, unsupported pages, unmatched selectors, providers with `platform: 'other'`, and deprecated providers do not throw. They are returned as results with `state: 'error'`. A timeout is a `signal` that aborts with a `TimeoutError`, such as `AbortSignal.timeout(10_000)`.
 
 To cancel a check and keep a timeout, combine the signals: `AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)])`.
 

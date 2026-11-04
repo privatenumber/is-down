@@ -33,6 +33,12 @@ export const getStatus = async (
 	options: GetStatusOptions = {},
 ): Promise<ServiceResult> => {
 	const request = toPageRequest(target, options);
+	if (request.provider?.deprecated) {
+		return errorResult(
+			request,
+			`${request.provider.deprecated} The "${request.provider.id}" catalog entry will be removed in the next major version.`,
+		);
+	}
 	if (request.provider?.platform === 'other') {
 		return errorResult(
 			request,

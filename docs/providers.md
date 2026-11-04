@@ -55,6 +55,10 @@ type Provider = {
     // for pages where the other components are rarely all operational.
     // If none exist on the page, the check covers the whole page.
     defaultScope?: string[]
+
+    // Why the entry will be removed in the next major version.
+    // Checks return it as an error without a request.
+    deprecated?: string
 }
 ```
 
@@ -72,6 +76,15 @@ These rules are enforced by tests:
 `pnpm test:live` also checks that every name in `components`, `ignoreComponents`, and `defaultScope` exists on the live page.
 
 IDs are part of the public interface. Renaming or removing an ID is a breaking change.
+
+## Retiring a service
+
+Services shut down and status pages move. The weekly live check, `pnpm test:live`, finds entries that stop working:
+
+- **The page moved:** update `url`, or `platform` if the new page has no compatible API. The ID stays.
+- **The service shut down, or has no public status page:** set `deprecated` to the reason in a minor release. The ID keeps resolving, checks return the reason as an error, `is-down list` marks the entry "(deprecated)", the export is marked `@deprecated`, and the live check skips it. Deprecated entries are removed together in the next major version.
+
+Deprecate an entry that fails two weekly runs in a row when no replacement page exists. A single failure can be a temporary outage or a migration in progress.
 
 ## Adding a service
 
