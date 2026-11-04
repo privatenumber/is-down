@@ -1,6 +1,6 @@
 # ansis color detection
 
-ansis decides one color level for the whole process when it is imported, from `process.stdout` only. `COLORTERM` and `CI` are checked before whether stdout is a TTY, so piped or redirected output can still be colored. Audited at [v4.4.0](https://github.com/webdiscus/ansis/blob/v4.4.0/src/color-support.js).
+ansis decides one color level for the whole process when it is imported, from `process.stdout` only. `COLORTERM` and `CI` are checked before whether stdout is a TTY, so piped or redirected output can still be colored. Audited at [v4.4.0](https://github.com/webdiscus/ansis/blob/v4.4.0/src/color-support.js). [v4.5.0](#v450-pipes-stay-plain-ci-does-not) stops `COLORTERM` from coloring pipes, but `CI` still does.
 
 ## Detection order
 
@@ -38,7 +38,27 @@ Output on macOS with Node.js v24.22.1 (2026-10-31):
 undefined 3 "\u001b[31mx\u001b[39m"
 ```
 
-Without `COLORTERM`, the same command prints `undefined 0 "x"`. Reported upstream as [webdiscus/ansis#54](https://github.com/webdiscus/ansis/issues/54) (open as of 2026-10-31). The similar inherited-`COLORTERM` case for `TERM=dumb` was fixed in v4.4.0 ([#49](https://github.com/webdiscus/ansis/issues/49)).
+Without `COLORTERM`, the same command prints `undefined 0 "x"`. Reported upstream as [webdiscus/ansis#54](https://github.com/webdiscus/ansis/issues/54) and fixed in v4.5.0 (see below). The similar inherited-`COLORTERM` case for `TERM=dumb` was fixed in v4.4.0 ([#49](https://github.com/webdiscus/ansis/issues/49)).
+
+## v4.5.0: pipes stay plain, CI does not
+
+[v4.5.0](https://github.com/webdiscus/ansis/blob/v4.5.0/CHANGELOG.md) fixed #54: `COLORTERM` now only picks the level once the output is known to support color. That check, in `getLevel` in [`src/color-support.js`](https://github.com/webdiscus/ansis/blob/v4.5.0/src/color-support.js), is:
+
+```js
+outputSupported = isTTY() || isCI() || detectPM2() || detectNextJs()
+```
+
+So `CI` still enables color for any output, including a pipe inside a CI job. GitHub Actions still gets truecolor. The changelog says this is intended: "Color output in supported non-TTY environments such as CI, PM2, and Next.js edge still works."
+
+The reproduction above, with `ansis@4.5.0` and Node.js v26.13.0 on macOS (2026-11-04), `COLORTERM` unset unless shown:
+
+| Environment, output piped to `cat` | Output |
+| --- | --- |
+| `COLORTERM=truecolor` | `undefined 0 "x"` |
+| `CI=true GITHUB_ACTIONS=true` | `undefined 3 "\u001b[31mx\u001b[39m"` |
+| `CI=true GITHUB_ACTIONS=true NO_COLOR=1` | `undefined 0 "x"` |
+
+A CI step that captures output into a file, such as `cmd | tee log`, needs `NO_COLOR` to keep escape codes out of the file. ansis cannot tell that pipe from the one GitHub Actions uses for its log view. `.github/workflows/live.yml` sets `NO_COLOR` on the live check for this reason, because manten bundles its own copy of ansis to color test output.
 
 ## Separate stderr instance
 
