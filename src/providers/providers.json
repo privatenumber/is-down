@@ -1974,7 +1974,8 @@
 		"name": "Halp",
 		"url": "https://status.halp.com",
 		"platform": "statuspage",
-		"domains": []
+		"domains": [],
+		"deprecated": "Atlassian discontinued Halp in 2024, and its status page no longer exists."
 	},
 	"harness": {
 		"name": "Harness",

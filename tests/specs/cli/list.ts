@@ -25,6 +25,11 @@ describe('list', () => {
 		expect(stdout).toContain('\nappledeveloper  developer.apple.com/system-status  (not checkable)\n');
 	});
 
+	test('marks deprecated entries', async () => {
+		const { stdout } = await run(['list', 'halp']);
+		expect(stdout).toContain('\nhalp     status.halp.com  (deprecated)\n');
+	});
+
 	test('--json matches the providers export', async () => {
 		const { exitCode, stdout } = await run(['list', '--json']);
 		expect(exitCode).toBe(0);

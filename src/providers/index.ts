@@ -2574,12 +2574,14 @@ export const hackerone: Provider = {
 	domains: [],
 };
 
+/** @deprecated Atlassian discontinued Halp in 2024, and its status page no longer exists. */
 export const halp: Provider = {
 	id: 'halp',
 	name: 'Halp',
 	url: 'https://status.halp.com',
 	platform: 'statuspage',
 	domains: [],
+	deprecated: 'Atlassian discontinued Halp in 2024, and its status page no longer exists.',
 };
 
 export const harness: Provider = {
