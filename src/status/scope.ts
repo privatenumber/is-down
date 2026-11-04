@@ -11,27 +11,60 @@ const matchesSelector = (text: string, selector: string) => {
 	return lower.includes(selector);
 };
 
-/** Returns leaf components matching the selectors, excluding groups and ignored placeholders */
+type Scoped = {
+	components: ApiComponent[];
+	isPartial: boolean;
+};
+
+/** Matches the provider's default scope by exact component or group name */
+const applyDefaultScope = (
+	components: ApiComponent[],
+	defaultScope: string[] | undefined,
+	getGroup: (component: ApiComponent) => string | undefined,
+): Scoped => {
+	const names = new Set(defaultScope);
+	const inDefaultScope = components.filter((component) => {
+		const group = getGroup(component);
+		return names.has(component.name) || (group !== undefined && names.has(group));
+	});
+
+	// A default scope missing from the page, such as after a rename, covers the whole page
+	// instead of failing with a selector the caller never passed
+	return inDefaultScope.length > 0
+		? {
+			components: inDefaultScope,
+			isPartial: true,
+		}
+		: {
+			components,
+			isPartial: false,
+		};
+};
+
+/**
+ * Returns the leaf components a check covers, excluding groups and ignored placeholders.
+ * `isPartial` is true when they are a subset of the page, chosen by the request's selectors
+ * or the provider's default scope.
+ */
 export const scopeComponents = (
 	allComponents: ApiComponent[],
 	request: PageRequest,
-	selectors: string[] | undefined,
 	componentNames: Map<string, string>,
-) => {
+): Scoped => {
 	const ignored = new Set(request.provider?.ignoreComponents);
 	const components = allComponents.filter(
 		component => !component.group && !ignored.has(component.name),
 	);
-	if (!selectors) {
-		return components;
-	}
-
 	const getGroup = (component: ApiComponent) => (
 		component.group_id ? componentNames.get(component.group_id) : undefined
 	);
+	if (!request.scope) {
+		return applyDefaultScope(components, request.provider?.defaultScope, getGroup);
+	}
+
 	const aliases = request.provider?.components ?? {};
 	const selected = new Set<ApiComponent>();
-	for (const rawSelector of selectors) {
+	for (const rawSelector of request.scope) {
 		const selector = rawSelector.toLowerCase();
 		const aliasTarget = Object.hasOwn(aliases, selector)
 			? aliases[selector]!.toLowerCase()
@@ -58,5 +91,8 @@ export const scopeComponents = (
 			selected.add(component);
 		}
 	}
-	return [...selected];
+	return {
+		components: [...selected],
+		isPartial: true,
+	};
 };

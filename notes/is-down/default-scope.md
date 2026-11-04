@@ -2,7 +2,7 @@
 
 **Decision:** a catalog entry can set `defaultScope`, exact component or group names that a check without a selector covers. Cloudflare's is `["Cloudflare Sites and Services"]`, so `is-down` and `is-down cloudflare` check its products, and data centers are checked with a selector such as `cloudflare:sydney`.
 
-Implemented in `evaluatePage` in [`src/status/evaluate.ts`](../../src/status/evaluate.ts), which treats the default scope like a selector, and documented in [`docs/cli.md`](../../docs/cli.md#what-counts-as-degraded) and [`docs/providers.md`](../../docs/providers.md#schema). Locked by "unscoped checks cover only the provider default scope" in [`tests/specs/get-status.ts`](../../tests/specs/get-status.ts). `pnpm test:live` checks that the names exist on the live page.
+Implemented in `scopeComponents` in [`src/status/scope.ts`](../../src/status/scope.ts), and `evaluatePage` in [`src/status/evaluate.ts`](../../src/status/evaluate.ts) treats a matched default scope like a selector. Documented in [`docs/cli.md`](../../docs/cli.md#what-counts-as-degraded) and [`docs/providers.md`](../../docs/providers.md#schema). Locked by "unscoped checks cover only the provider default scope" in [`tests/specs/get-status.ts`](../../tests/specs/get-status.ts). `pnpm test:live` checks that the names exist on the live page.
 
 ## Problem
 
@@ -15,6 +15,12 @@ Before this change, the default `is-down` run reported Cloudflare as degraded on
 - `ignoreComponents` means "placeholders that carry no status". Data centers carry real status.
 
 `result.scope` stays the caller's `components` option, so the CLI label and JSON output do not change for unscoped checks.
+
+## Exact names, and a fallback when they are missing
+
+Default scope names match exact component or group names, not the word-prefix and substring rules of selectors. A short entry such as `"API"` would otherwise also match "API Shield".
+
+When none of the names exist on the page, the check covers the whole page, as it did before `defaultScope`. The alternative was the selector behavior, an error, but its message would name a selector the user never passed (`No component matches "Cloudflare Sites and Services"`), and a published version cannot be fixed after a provider renames a group. A false "degraded" is the lesser failure. Locked by "a default scope missing from the page covers the whole page" in [`tests/specs/get-status.ts`](../../tests/specs/get-status.ts).
 
 ## Accepted trade-off
 
@@ -36,5 +42,5 @@ The first plan was a GitHub Actions cron job that sampled the default services e
 
 ## When to revisit
 
-- If Cloudflare renames "Cloudflare Sites and Services", unscoped Cloudflare checks fail with "No component matches", and `pnpm test:live` fails.
+- If Cloudflare renames "Cloudflare Sites and Services", unscoped Cloudflare checks fall back to the whole page and are degraded again on almost every run. `pnpm test:live` fails, and the "Default scope missing" column of `pnpm audit-status cloudflare --history` counts the captures without the group.
 - If another provider's default run is red most of the time, measure it with `pnpm audit-status <id> --history` and consider a `defaultScope` for it.

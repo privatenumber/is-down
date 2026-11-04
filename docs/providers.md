@@ -52,7 +52,8 @@ type Provider = {
     ignoreComponents?: string[]
 
     // Exact component or group names that checks without a selector cover,
-    // for pages where the other components are rarely all operational
+    // for pages where the other components are rarely all operational.
+    // If none exist on the page, the check covers the whole page.
     defaultScope?: string[]
 }
 ```

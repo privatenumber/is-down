@@ -75,18 +75,21 @@ const coveredTime = (incidents: ApiIncident[], start: number, end: number) => {
 	return covered;
 };
 
-/** Leaf components within the provider's default scope, as the CLI selects them */
-const defaultScopeIds = (provider: Provider, summary: ApiSummary) => {
+/** Leaf components an unscoped check covers, as the CLI selects them */
+const defaultScope = (provider: Provider, summary: ApiSummary) => {
 	const names = new Map(summary.components.map(component => [component.id, component.name]));
 	const request = {
 		url: provider.url,
 		provider,
 		incidentIds: [],
 	};
-	return new Set(
-		scopeComponents(summary.components, request, provider.defaultScope, names)
-			.map(component => component.id),
-	);
+	const { components, isPartial } = scopeComponents(summary.components, request, names);
+	return {
+		ids: new Set(components.map(component => component.id)),
+
+		// The CLI falls back to the whole page when none of the names exist on it
+		isMissing: provider.defaultScope !== undefined && !isPartial,
+	};
 };
 
 const auditIncidents = async (provider: Provider, days: number) => {
@@ -94,7 +97,7 @@ const auditIncidents = async (provider: Provider, days: number) => {
 		fetchJson<ApiSummary>(`${provider.url}/api/v2/summary.json`),
 		fetchJson<{ incidents: ApiIncident[] }>(`${provider.url}/api/v2/incidents.json`),
 	]);
-	const scopedIds = defaultScopeIds(provider, summary);
+	const scopedIds = defaultScope(provider, summary).ids;
 	const end = Date.now();
 	const endTime = (incident: ApiIncident) => (
 		incident.resolved_at ? Date.parse(incident.resolved_at) : end
@@ -158,6 +161,7 @@ const auditHistory = async (provider: Provider) => {
 		captures: 0,
 		anyComponent: 0,
 		inDefaultScope: 0,
+		defaultScopeMissing: 0,
 		indicator: 0,
 		failed: 0,
 	};
@@ -167,15 +171,21 @@ const auditHistory = async (provider: Provider) => {
 		await setTimeout(1500);
 		try {
 			const summary = await fetchCapture(timestamp, summaryUrl);
-			const scopedIds = defaultScopeIds(provider, summary);
+			const scope = defaultScope(provider, summary);
 			const notOperational = summary.components.filter(component => (
 				!component.group && component.status !== 'operational'
 			));
 
 			counts.captures += 1;
 			counts.anyComponent += Number(notOperational.length > 0);
-			const inScope = notOperational.some(component => scopedIds.has(component.id));
-			counts.inDefaultScope += Number(inScope);
+
+			// Captures from before the scope existed would count the whole page as the scope
+			if (scope.isMissing) {
+				counts.defaultScopeMissing += 1;
+			} else {
+				const inScope = notOperational.some(component => scope.ids.has(component.id));
+				counts.inDefaultScope += Number(inScope);
+			}
 			counts.indicator += Number(summary.status.indicator !== 'none');
 		} catch (error) {
 			counts.failed += 1;
@@ -188,7 +198,8 @@ const auditHistory = async (provider: Provider) => {
 		`${timestamps[0]?.slice(0, 8) ?? '-'} to ${timestamps.at(-1)?.slice(0, 8) ?? '-'}`,
 		String(counts.captures),
 		percent(counts.anyComponent, counts.captures),
-		percent(counts.inDefaultScope, counts.captures),
+		percent(counts.inDefaultScope, counts.captures - counts.defaultScopeMissing),
+		String(counts.defaultScopeMissing),
 		percent(counts.indicator, counts.captures),
 		String(counts.failed),
 	];
@@ -221,6 +232,7 @@ if (argv.flags.history) {
 			'Captures',
 			'Any component not operational',
 			'Within default scope',
+			'Default scope missing',
 			'Indicator not none',
 			'Failed',
 		],

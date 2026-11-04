@@ -67,13 +67,16 @@ export const evaluatePage = (
 	const componentNames = new Map(
 		summary.components.map(component => [component.id, component.name]),
 	);
-	const scope = request.scope ?? request.provider?.defaultScope;
-	const scoped = scopeComponents(summary.components, request, scope, componentNames);
+	const { components: scoped, isPartial } = scopeComponents(
+		summary.components,
+		request,
+		componentNames,
+	);
 	const scopedIds = new Set(scoped.map(component => component.id));
 
 	// Incidents not linked to any component are treated as affecting the whole service
 	const isRelevant = (incident: ApiIncident) => (
-		!scope
+		!isPartial
 		|| !incident.components?.length
 		|| incident.components.some(component => scopedIds.has(component.id))
 	);
@@ -99,7 +102,7 @@ export const evaluatePage = (
 		worst !== 'operational'
 		|| incidents.some(incident => incident.impact !== 'none')
 		// The page indicator also counts components outside the scope
-		|| (!scope && summary.status.indicator !== 'none')
+		|| (!isPartial && summary.status.indicator !== 'none')
 	);
 
 	return {
@@ -108,7 +111,7 @@ export const evaluatePage = (
 		url: request.url,
 		scope: request.scope,
 		state: degraded ? 'degraded' : 'operational',
-		description: scope ? describeScope(worst, degraded) : summary.status.description,
+		description: isPartial ? describeScope(worst, degraded) : summary.status.description,
 		components,
 		incidents,
 		recentIncidents: recentIncidents.map(convert),

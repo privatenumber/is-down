@@ -117,6 +117,53 @@ describe('getStatus', () => {
 		});
 	});
 
+	test('a default scope missing from the page covers the whole page', async () => {
+		await using page = await createStatusPage({
+			[summaryPath]: summary({
+				indicator: 'minor',
+				description: 'Minor Service Outage',
+				components: [
+					{
+						id: 'services',
+						name: 'Services',
+						group: true,
+					},
+					{
+						id: 'cdn',
+						name: 'CDN',
+						group_id: 'services',
+					},
+					{
+						id: 'syd',
+						name: 'Sydney',
+						status: 'partial_outage',
+					},
+				],
+			}),
+			[incidentsPath]: { incidents: [] },
+		});
+		const provider: Provider = {
+			id: 'example',
+			name: 'Example CDN',
+			url: page.url,
+			platform: 'statuspage',
+			domains: [],
+
+			// As a selector, "service" would match the "Services" group by word prefix
+			defaultScope: ['Service'],
+		};
+
+		const result = await getStatus(provider);
+		expect(result).toMatchObject({
+			state: 'degraded',
+			description: 'Minor Service Outage',
+			components: [
+				{ name: 'CDN' },
+				{ name: 'Sydney' },
+			],
+		});
+	});
+
 	test('Object.prototype names are not component aliases', async () => {
 		await using page = await createStatusPage({
 			[summaryPath]: summary({
