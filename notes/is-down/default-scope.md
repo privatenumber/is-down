@@ -6,7 +6,7 @@ Implemented in `scopeComponents` in [`src/status/scope.ts`](../../src/status/sco
 
 ## Problem
 
-Before this change, the default `is-down` run reported Cloudflare as degraded on every run, even with no open incident. Cloudflare lists about 340 data centers as components, and dozens are in partial outage, degraded, or under maintenance at any time ([cloudflare/status-page.md](../cloudflare/status-page.md)). An unscoped check is degraded when any component is not operational or the page indicator is not `none`, and both were true in 100% of 374 captures from 2022 to 2026. So the default run exited `1` and lost its meaning.
+Before this change, the default `is-down` run reported Cloudflare as degraded on every run, even with no open incident. Cloudflare lists about 340 data centers as components, and dozens are in partial outage, degraded, or under maintenance at any time ([cloudflare/status-page.md](../cloudflare/status-page.md)). An unscoped check is degraded when any component is not operational or the page indicator is not `none`, and both were true in 100% of 376 captures from 2022 to 2026. Every capture has the "Cloudflare Sites and Services" group, so the default scope would have applied throughout. So the default run exited `1` and lost its meaning.
 
 ## Why a scope and not `ignoreComponents`
 

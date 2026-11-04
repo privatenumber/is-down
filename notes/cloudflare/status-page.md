@@ -23,14 +23,15 @@ Every group except "Cloudflare Sites and Services" holds data centers, named lik
 
 ## Data centers are never all operational
 
-Wayback Machine captures, at most one per hour, from 2022-12-11 to 2026-10-27:
+Wayback Machine captures, at most one per hour, from 2022-12-11 to 2026-11-03 (rerun 2026-11-04):
 
 | Measure | Result |
 | --- | --- |
-| Captures | 374 |
+| Captures | 376 |
 | Any component not operational | 100% |
 | Indicator not `none` | 100% |
 | A "Cloudflare Sites and Services" component not operational | 49.2% |
+| Captures without the "Cloudflare Sites and Services" group | 0 |
 
 In the 194 captures from 2025 and later, 32 to 78 data centers were not operational (median 51). Their statuses, summed over those captures: 5,223 `partial_outage`, 4,009 `under_maintenance`, 734 `degraded_performance`, 319 `major_outage`.
 
