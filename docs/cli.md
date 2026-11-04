@@ -95,7 +95,7 @@ github, gh      www.githubstatus.com
 2 of 762 services match "gh". Check one with: is-down <service>
 ```
 
-The first column lists the ID and aliases, which are what `is-down` accepts. Entries marked "(not checkable)" have no compatible status API; checking one prints the page to open. When no service matches, `list` exits `2`.
+The first column lists the ID and aliases, which are what `is-down` accepts. Entries marked "(not checkable)" have no compatible status API; checking one prints the page to open. Entries marked "(deprecated)" are for services that shut down or lost their public status page, and will be removed in the next major version. When no service matches, `list` exits `2`.
 
 `--json` prints the matching entries keyed by ID, in the same shape as [`is-down/providers.json`](providers.md).
 

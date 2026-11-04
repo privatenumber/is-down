@@ -19,7 +19,7 @@ Each upstream folder owns that tool's behavior, implementation, configuration, a
 | [claude-code/](./claude-code/README.md) | How Claude Code delivers output from long-running commands |
 | [opencode/](./opencode/README.md) | How OpenCode delivers output from long-running commands |
 | [codex/](./codex/README.md) | How Codex delivers output from long-running commands |
-| [is-down/](./is-down/README.md) | Project decisions: incident lookup, the `watch` command design, terminal styling, default scopes |
+| [is-down/](./is-down/README.md) | Project decisions: incident lookup, the `watch` command design, terminal styling, default scopes, catalog lifecycle |
 
 ## Evidence
 

@@ -6,6 +6,11 @@ import * as providers from '../src/providers/index.ts';
 // Not part of `pnpm test` because it depends on the network.
 describe('live catalog', () => {
 	for (const provider of Object.values(providers)) {
+		// Deprecated entries are known to be broken and wait for removal in the next major version
+		if (provider.deprecated) {
+			continue;
+		}
+
 		test(provider.id, async () => {
 			if (provider.platform === 'other') {
 				const response = await fetch(provider.url, { signal: AbortSignal.timeout(10_000) });

@@ -88,6 +88,8 @@ describe('resolveTargets', () => {
 	});
 
 	test('defaults are checkable', () => {
-		expect(defaultProviders.filter(provider => provider.platform === 'other')).toStrictEqual([]);
+		expect(defaultProviders.filter(provider => (
+			provider.platform === 'other' || provider.deprecated
+		))).toStrictEqual([]);
 	});
 });

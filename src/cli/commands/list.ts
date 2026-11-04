@@ -50,7 +50,9 @@ if (argv.flags.json) {
 	// Every catalog URL is https, so the scheme is left out
 	const lines = rows.map(({ service, entry }) => {
 		const page = linkTo(entry.url, entry.url.replace(/^https:\/\//, ''));
-		const note = entry.platform === 'other' ? `  ${style('dim', '(not checkable)')}` : '';
+		const note = entry.deprecated
+			? `  ${style('dim', '(deprecated)')}`
+			: (entry.platform === 'other' ? `  ${style('dim', '(not checkable)')}` : '');
 		return `${service.padEnd(width)}  ${page}${note}`;
 	});
 	const count = query

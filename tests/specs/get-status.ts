@@ -223,6 +223,24 @@ describe('getStatus', () => {
 		});
 	});
 
+	test('deprecated providers return an error without a request', async () => {
+		await using page = await createStatusPage({});
+
+		const result = await getStatus({
+			id: 'example',
+			name: 'Example',
+			url: page.url,
+			platform: 'statuspage',
+			domains: [],
+			deprecated: 'Example shut down.',
+		});
+		expect(result).toMatchObject({
+			state: 'error',
+			error: 'Example shut down. The "example" catalog entry will be removed in the next major version.',
+		});
+		expect(page.requests).toStrictEqual([]);
+	});
+
 	test('timeouts return an error', async () => {
 		await using page = await createStatusPage({ [summaryPath]: 'hang' });
 
